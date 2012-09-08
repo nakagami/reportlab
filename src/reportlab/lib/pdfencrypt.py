@@ -176,12 +176,6 @@ else:
             out = out + chr(xor(num, ord(ch)))
         return out
 
-def hexchar(x):
-    c = chr(int(x, 16))
-    if isUnicodeType(c):
-        c = c.encode('utf-8')
-    return c
-
 def hexText(text):
     "a legitimate way to show strings in PDF"
     out = ''
@@ -193,14 +187,22 @@ def unHexText(hexText):
     assert hexText[0] == '<', 'bad hex text'
     assert hexText[-1] == '>', 'bad hex text'
     hexText = hexText[1:-1]
-    out = ''
-    for i in range(int(len(hexText)/2.0)):
+    out = []
+    for i in range(int(len(hexText)//2)):
         slice = hexText[i*2: i*2+2]
-        char = chr(eval('0x'+slice))
-        out = out + char
+        out.append(int(slice, 16))
+    if sys.version_info[0] == 3:
+        out = bytes(out)
+    else:
+        out = b''.join([chr(i) for i in out])
+
     return out
 
-PadString = b"".join(map(hexchar, padding.strip().split()))
+PadString = [int(x, 16) for x in padding.strip().split()]
+if sys.version_info[0] == 3:
+    PadString = bytes(PadString)
+else:
+    PadString = b''.join([chr(i) for i in PadString])
 
 def encryptionkey(password, OwnerKey, Permissions, FileId1, revision=2):
     # FileId1 is first string of the fileid array

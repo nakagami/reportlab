@@ -67,10 +67,11 @@ class ArcIV:
 
     def encode(self,S):
         'ArcIV encode string S'
-        s = "".join([chr(c) for c in self._encode(S)])
         if sys.version_info[0] == 3:
-            s = s.encode('utf-8')
-        return s
+            r = bytes(self._encode(S))
+        else:
+            r = b"".join([chr(c) for c in self._encode(S)])
+        return r
 
 _TESTS=[{
         'key': b"\x01\x23\x45\x67\x89\xab\xcd\xef",
