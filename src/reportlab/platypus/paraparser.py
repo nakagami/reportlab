@@ -3,21 +3,14 @@
 #history http://www.reportlab.co.uk/cgi-bin/viewcvs.cgi/public/reportlab/trunk/reportlab/platypus/paraparser.py
 __version__=''' $Id: paraparser.py 3774 2010-09-08 15:11:10Z rgbecker $ '''
 __doc__='''The parser used to process markup within paragraphs'''
-import string
 import re
-from types import TupleType, UnicodeType, StringType
 import sys
 import os
 import copy
-import base64
-try:
-    import cPickle as pickle
-except:
-    import pickle
 import unicodedata
 import reportlab.lib.sequencer
 from reportlab.lib.abag import ABag
-from reportlab.lib.utils import ImageReader
+from reportlab.lib.utils import ImageReader, UniChr, isStrType, encode_label
 
 from reportlab.lib import xmllib
 
@@ -106,7 +99,7 @@ def _autoLeading(x):
     raise ValueError('Invalid autoLeading=%r' % x )
 
 def _align(s):
-    s = string.lower(s)
+    s = s.lower()
     if s=='left': return TA_LEFT
     elif s=='right': return TA_RIGHT
     elif s=='justify': return TA_JUSTIFY
@@ -193,11 +186,11 @@ _indexAttrMap = {
                 }
 
 def _addAttributeNames(m):
-    K = m.keys()
+    K = list(m.keys())
     for k in K:
         n = m[k][0]
         if n not in m: m[n] = m[k]
-        n = string.lower(n)
+        n = n.lower()
         if n not in m: m[n] = m[k]
 
 _addAttributeNames(_paraAttrMap)
@@ -208,7 +201,7 @@ _addAttributeNames(_linkAttrMap)
 
 def _applyAttributes(obj, attr):
     for k, v in attr.items():
-        if type(v) is TupleType and v[0]=='relative':
+        if type(v) is tuple and v[0]=='relative':
             #AR 20/5/2000 - remove 1.5.2-ism
             #v = v[1]+getattr(obj,k,0)
             if hasattr(obj, k):
@@ -490,16 +483,16 @@ def _greekConvert(data):
     if not _greek2Utf8:
         from reportlab.pdfbase.rl_codecs import RL_Codecs
         import codecs
-        dm = decoding_map = codecs.make_identity_dict(xrange(32,256))
-        for k in xrange(0,32):
+        dm = decoding_map = codecs.make_identity_dict(range(32,256))
+        for k in range(0,32):
             dm[k] = None
         dm.update(RL_Codecs._RL_Codecs__rl_codecs_data['symbol'][0])
         _greek2Utf8 = {}
-        for k,v in dm.iteritems():
+        for k,v in dm.items():
             if not v:
-                u = '\0'
+                u = u'\0'
             else:
-                u = unichr(v).encode('utf8')
+                u = UniChr(v)
             _greek2Utf8[chr(k)] = u
     return ''.join(map(_greek2Utf8.__getitem__,data))
 
@@ -565,7 +558,7 @@ class ParaParser(xmllib.XMLParser):
         if attrName!=attrName.lower() and attrName!="caseSensitive" and not self.caseSensitive and \
             (attrName.startswith("start_") or attrName.startswith("end_")):
                 return getattr(self,attrName.lower())
-        raise AttributeError, attrName
+        raise AttributeError(attrName)
 
     #### bold
     def start_b( self, attributes ):
@@ -701,7 +694,7 @@ class ParaParser(xmllib.XMLParser):
         except ValueError:
             self.unknown_charref(name)
             return
-        self.handle_data(unichr(n).encode('utf8'))
+        self.handle_data(UniChr(n).encode('utf8'))
 
     def handle_entityref(self,name):
         if name in greeks:
@@ -733,7 +726,7 @@ class ParaParser(xmllib.XMLParser):
                 v = '\0'
         elif 'code' in attr:
             try:
-                v = unichr(int(eval(attr['code']))).encode('utf8')
+                v = UniChr(int(eval(attr['code']))).encode('utf8')
             except:
                 self._syntax_error('<unichar/> invalid code attribute %s' % attr['code'])
                 v = '\0'
@@ -928,7 +921,7 @@ class ParaParser(xmllib.XMLParser):
                 offset = int(offset)
             except:
                 raise ValueError('index tag offset is %r not an int' % offset)
-        defn.label = base64.encodestring(pickle.dumps((label,format,offset))).strip()
+        defn.label = encode_label([label,format,offset])
         defn.name = name
         defn.kind='index'
         self._push(cbDefn=defn)
@@ -953,7 +946,7 @@ class ParaParser(xmllib.XMLParser):
         A = {}
         for k, v in attr.items():
             if not self.caseSensitive:
-                k = string.lower(k)
+                k = k.lower()
             if k in attrMap.keys():
                 j = attrMap[k]
                 func = j[1]
@@ -1016,6 +1009,8 @@ class ParaParser(xmllib.XMLParser):
         frag.fontName = tt2ps(frag.fontName,frag.bold,frag.italic)
 
         #save our data
+        if not isStrType(data):
+            data = data.decode('utf-8')
         frag.text = data
 
         if hasattr(frag,'isBullet'):
@@ -1043,7 +1038,7 @@ class ParaParser(xmllib.XMLParser):
         # and revert at end.  Yuk.  Preliminary step prior to
         # removal of parser altogether.
         enc = self._enc = 'utf8' #our legacy default
-        self._UNI = type(text) is UnicodeType
+        self._UNI = sys.version_info[0] != 3 and type(text) == type(u'')
         if self._UNI:
             text = text.encode(enc)
 
@@ -1091,7 +1086,7 @@ class ParaParser(xmllib.XMLParser):
         if C:
             M = self._tt_handlers
             for c in C:
-                M[type(c) is TupleType](c)
+                M[type(c) is tuple](c)
         end()
 
     def tt_parse(self,tt,style):
@@ -1106,19 +1101,19 @@ if __name__=='__main__':
     from reportlab.lib.styles import _baseFontName
     _parser=ParaParser()
     def check_text(text,p=_parser):
-        print '##########'
+        print('##########')
         text = cleanBlockQuotedText(text)
         l,rv,bv = p.parse(text,style)
         if rv is None:
             for l in _parser.errors:
-                print l
+                print(l)
         else:
-            print 'ParaStyle', l.fontName,l.fontSize,l.textColor
+            print('ParaStyle', l.fontName,l.fontSize,l.textColor)
             for l in rv:
-                print l.fontName,l.fontSize,l.textColor,l.bold, l.rise, '|%s|'%l.text[:25],
+                print(l.fontName,l.fontSize,l.textColor,l.bold, l.rise, '|%s|'%l.text[:25],)
                 if hasattr(l,'cbDefn'):
-                    print 'cbDefn',getattr(l.cbDefn,'name',''),getattr(l.cbDefn,'label',''),l.cbDefn.kind
-                else: print
+                    print('cbDefn',getattr(l.cbDefn,'name',''),getattr(l.cbDefn,'label',''),l.cbDefn.kind)
+                else: print()
 
     style=ParaFrag()
     style.fontName=_baseFontName

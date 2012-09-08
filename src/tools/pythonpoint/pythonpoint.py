@@ -77,7 +77,7 @@ from reportlab import rl_config
 from reportlab.lib import styles
 from reportlab.lib import colors
 from reportlab.lib.units import cm
-from reportlab.lib.utils import getStringIO
+from reportlab.lib.utils import getBytesIO
 from reportlab.lib.enums import TA_LEFT, TA_RIGHT, TA_CENTER, TA_JUSTIFY
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfgen import canvas
@@ -344,15 +344,15 @@ class PPPresentation:
     def saveAsPresentation(self):
         """Write the PDF document, one slide per page."""
         if self.verbose:
-            print 'saving presentation...'
+            print('saving presentation...')
         pageSize = (self.pageWidth, self.pageHeight)
         if self.sourceFilename:
             filename = os.path.splitext(self.sourceFilename)[0] + '.pdf'
         if self.outDir: filename = os.path.join(self.outDir,os.path.basename(filename))
         if self.verbose:
-            print filename
+            print(filename)
         #canv = canvas.Canvas(filename, pagesize = pageSize)
-        outfile = getStringIO()
+        outfile = getBytesIO()
         if self.notes:
             #translate the page from landscape to portrait
             pageSize= pageSize[1], pageSize[0]
@@ -371,7 +371,7 @@ class PPPresentation:
             #need diagnostic output if something wrong with XML
             slideNo = slideNo + 1
             if self.verbose:
-                print 'doing slide %d, id = %s' % (slideNo, slide.id)
+                print('doing slide %d, id = %s' % (slideNo, slide.id))
             if self.notes:
                 #frame and shift the slide
                 #canv.scale(0.67, 0.67)
@@ -403,7 +403,7 @@ class PPPresentation:
         if self.sourceFilename :
             filename = os.path.splitext(self.sourceFilename)[0] + '.pdf'
 
-        outfile = getStringIO()
+        outfile = getBytesIO()
         doc = SimpleDocTemplate(outfile, pagesize=rl_config.defaultPageSize, showBoundary=0)
         doc.leftMargin = 1*cm
         doc.rightMargin = 1*cm
@@ -510,7 +510,7 @@ class PPNotes:
         self.content = []
 
     def drawOn(self, canv):
-        print self.content
+        print(self.content)
 
 
 class PPSlide:
@@ -666,13 +666,13 @@ class PPTable:
 
     def parseData(self):
         """Try to make sense of the table data!"""
-        rawdata = string.strip(string.join(self.rawBlocks, ''))
-        lines = string.split(rawdata, self.rowDelim)
+        rawdata = (''.join(self.rawBlocks)).strip()
+        lines = rawdata.split(self.rowDelim)
         #clean up...
-        lines = map(string.strip, lines)
+        lines = [line.strip() for line in lines]
         self.data = []
         for line in lines:
-            cells = string.split(line, self.fieldDelim)
+            cells = line.split(self.fieldDelim)
             self.data.append(cells)
 
         #get the width list if not given
@@ -680,16 +680,6 @@ class PPTable:
             self.widths = [None] * len(self.data[0])
         if not self.heights:
             self.heights = [None] * len(self.data)
-
-##        import pprint
-##        print 'table data:'
-##        print 'style=',self.style
-##        print 'widths=',self.widths
-##        print 'heights=',self.heights
-##        print 'fieldDelim=',repr(self.fieldDelim)
-##        print 'rowDelim=',repr(self.rowDelim)
-##        pprint.pprint(self.data)
-
 
 class PPSpacer:
     def __init__(self):
@@ -899,7 +889,7 @@ class PPString:
 
         if self.color is None:
             return
-        lines = string.split(string.strip(drawText), '\\n')
+        lines = '\\n'.split(drawText.strip())
         canv.saveState()
 
         canv.setFont(self.font, self.size)
@@ -1006,7 +996,7 @@ def _process(rawdata, datafilename, notes=0, handout=0, printout=0, cols=0, verb
     pdfcontent = pres.save()
 
     if verbose:
-        print 'saved presentation %s.pdf' % os.path.splitext(datafilename)[0]
+        print('saved presentation %s.pdf' % os.path.splitext(datafilename)[0])
     parser.close()
 
     return pdfcontent
@@ -1043,9 +1033,9 @@ def handleOptions():
     args = filter(lambda x: x and x[0]=='-',args) + filter(lambda x: not x or x[0]!='-',args)
     try:
         shortOpts = 'hnvsx'
-        longOpts = string.split('cols= outdir= handout help notes printout verbose silent nofx')
+        longOpts = 'cols= outdir= handout help notes printout verbose silent nofx'.split()
         optList, args = getopt.getopt(args, shortOpts, longOpts)
-    except getopt.error, msg:
+    except getopt.error(msg):
         options['help'] = 1
 
     if not args and os.path.isfile('pythonpoint.xml'):
@@ -1093,24 +1083,24 @@ def main():
     options, args = handleOptions()
 
     if options['help']:
-        print USAGE_MESSAGE
+        print(USAGE_MESSAGE)
         sys.exit(0)
 
     if options['verbose'] and options['notes']:
-        print 'speaker notes mode'
+        print('speaker notes mode')
 
     if options['verbose'] and options['handout']:
-        print 'handout mode'
+        print('handout mode')
 
     if options['verbose'] and options['printout']:
-        print 'printout mode'
+        print('printout mode')
 
     if not options['fx']:
-        print 'suppressing special effects'
+        print('suppressing special effects')
     for fileGlobs in args:
         files = glob.glob(fileGlobs)
         if not files:
-            print fileGlobs, "not found"
+            print(fileGlobs, "not found")
             return
         for datafile in files:
             if os.path.isfile(datafile):
@@ -1118,7 +1108,7 @@ def main():
                 notes, handout, printout, cols, verbose, fx = options['notes'], options['handout'], options['printout'],  options['cols'], options['verbose'], options['fx']
                 process(file, notes, handout, printout, cols, verbose, options['outDir'], fx=fx)
             else:
-                print 'Data file not found:', datafile
+                print('Data file not found:', datafile)
 
 if __name__ == '__main__':
     main()

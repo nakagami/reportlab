@@ -31,7 +31,7 @@ from reportlab.graphics.shapes import Group, Drawing, Ellipse, Wedge, String, ST
 from reportlab.graphics.widgetbase import Widget, TypedPropertyCollection, PropHolder
 from reportlab.graphics.charts.areas import PlotArea
 from reportlab.graphics.charts.legends import _objStr
-from textlabels import Label
+from reportlab.graphics.charts.textlabels import Label
 
 _ANGLE2BOXANCHOR={0:'w', 45:'sw', 90:'s', 135:'se', 180:'e', 225:'ne', 270:'n', 315: 'nw', -45: 'nw'}
 _ANGLE2RBOXANCHOR={0:'e', 45:'ne', 90:'n', 135:'nw', 180:'w', 225:'sw', 270:'s', 315: 'se', -45: 'se'}
@@ -232,7 +232,7 @@ def findOverlapRun(B,wrap=1):
     '''determine a set of overlaps in bounding boxes B or return None'''
     n = len(B)
     if n>1:
-        for i in xrange(n-1):
+        for i in range(n-1):
             R = _findOverlapRun(B,i,wrap)
             if len(R)>1: return R
     return None
@@ -303,7 +303,7 @@ def _makeSideArcDefs(sa,direction):
 def _findLargestArc(xArcs,side):
     a = [a[1] for a in xArcs if a[0]==side and a[1] is not None]
     if not a: return None
-    if len(a)>1: a.sort(lambda x,y: cmp(y[1]-y[0],x[1]-x[0]))
+    if len(a)>1: a.sort(key = lambda x: x[1]-x[0])
     return a[0]
 
 def _fPLSide(l,width,side=None):
@@ -339,12 +339,6 @@ def _fPLSide(l,width,side=None):
     data['side'] = side
     return side,w
 
-def _fPLCF(a,b):
-    return cmp(b._origdata['smid'],a._origdata['smid'])
-
-def _arcCF(a,b):
-    return cmp(a[1],b[1])
-
 def _fixPointerLabels(n,L,x,y,width,height,side=None):
     LR = [],[]
     mlr = [0,0]
@@ -365,7 +359,7 @@ def _fixPointerLabels(n,L,x,y,width,height,side=None):
             aB = B.append
             S = []
             aS = S.append
-            T.sort(_fPLCF)
+            T = sorted(T, key=lambda x:x._origdata['smid'])
             p = 0
             yh = y+height
             for l in T:
@@ -575,7 +569,7 @@ class Pie(AbstractPieChart):
         return PL(centerx,centery,xradius,yradius,G,lu,ru)
 
     def normalizeData(self,keepData=False):
-        data = map(abs,self.data)
+        data = [abs(d) for d in self.data]
         s = self._sum = float(sum(data))
         if s<=1e-8: s = 0
         f = 360./s
@@ -591,7 +585,8 @@ class Pie(AbstractPieChart):
         D = [a for a in enumerate(self.normalizeData(keepData=wr))]
         if self.orderMode=='alternate':
             W = [a for a in D if abs(a[1])>=1e-5]
-            W.sort(_arcCF)
+            W.sort(key=lambda x:x[1])
+
             T = [[],[]]
             i = 0
             while W:
@@ -605,7 +600,6 @@ class Pie(AbstractPieChart):
             T[1].reverse()
             D = T[0]+T[1] + [a for a in D if abs(a[1])<1e-5]
         A = []
-        a = A.append
         for i, angle in D:
             endAngle = (startAngle + (angle * whichWay))
             if abs(angle)>=1e-5:
@@ -618,7 +612,7 @@ class Pie(AbstractPieChart):
             if wr:
                 aa = (AngleData(aa[0],angle._data),aa[1])
             startAngle = endAngle
-            a((i,aa))
+            A.append([i,aa])
         return A
 
     def makeWedges(self):
@@ -809,7 +803,7 @@ class LegendedPie(Pie):
         self.legend1.columnMaximum = 7
         self.legend1.alignment = 'right'
         self.legend_names = ['AAA:','AA:','A:','BBB:','NR:']
-        for f in xrange(len(self.data)):
+        for f in range(len(self.data)):
             self.legend1.colorNamePairs.append((self.pieAndLegend_colors[f], self.legend_names[f]))
         self.legend1.fontName = "Helvetica-Bold"
         self.legend1.fontSize = 6
@@ -834,7 +828,7 @@ class LegendedPie(Pie):
         if self.drawLegend:
             self.legend1.colorNamePairs = []
             self._legend2.colorNamePairs = []
-        for f in xrange(len(self.data)):
+        for f in range(len(self.data)):
             if self.legend_names == None:
                 self.slices[f].fillColor = self.pieAndLegend_colors[f]
                 self.legend1.colorNamePairs.append((self.pieAndLegend_colors[f], None))
@@ -868,7 +862,7 @@ class LegendedPie(Pie):
                         ldf = lNF(ldf)
                     else:
                         msg = "Unknown formatter type %s, expected string or function" % self.legendNumberFormat
-                        raise Exception, msg
+                        raise Exception(msg)
                     self._legend2.colorNamePairs.append((None,ldf))
         p = Pie.draw(self)
         if self.drawLegend:
@@ -899,7 +893,7 @@ class LegendedPie(Pie):
         drawing.add(self.draw())
         return drawing
 
-from utils3d import _getShaded, _2rad, _360, _pi_2, _2pi, _180_pi
+from reportlab.graphics.charts.utils3d import _getShaded, _2rad, _360, _pi_2, _2pi, _180_pi
 class Wedge3dProperties(PropHolder):
     """This holds descriptive information about the wedges in a pie chart.
 
@@ -1092,7 +1086,7 @@ class Pie3d(Pie):
     
         checkLabelOverlap = self.checkLabelOverlap
 
-        for i in xrange(n):
+        for i in range(n):
             style = slices[i]
             if not style.visible: continue
             sl = _sl3d[i]
@@ -1150,7 +1144,7 @@ class Pie3d(Pie):
                 self._radiusx = radiusx
                 self._radiusy = radiusy
 
-        S.sort(lambda a,b: -cmp(a[0],b[0]))
+        S.sort(key=lambda x:x[0])
         if checkLabelOverlap and L:
             fixLabelOverlaps(L)
         for x in ([s[1] for s in S]+T+L):

@@ -6,12 +6,9 @@ __doc__="""Standard verifying functions used by attrmap."""
 
 import string, sys, codecs
 from types import *
-_SequenceTypes = (ListType,TupleType)
-_NumberTypes = (FloatType,IntType)
+_NumberTypes = (float,int)
 from reportlab.lib import colors
-if sys.hexversion<0x2030000:
-    True = 1
-    False = 0
+from reportlab.lib.utils import isSeqType, isStrType
 
 class Validator:
     "base validator class"
@@ -40,32 +37,27 @@ class _isNothing(Validator):
         return False
 
 class _isBoolean(Validator):
-    if sys.hexversion>=0x2030000:
-        def test(self,x):
-            if type(x) in (IntType,BooleanType): return x in (0,1)
-            return self.normalizeTest(x)
-    else:
-        def test(self,x):
-            if type(x) is IntType: return x in (0,1)
-            return self.normalizeTest(x)
+    def test(self,x):
+        if type(x) in (int,bool): return x in (0,1)
+        return self.normalizeTest(x)
 
     def normalize(self,x):
         if x in (0,1): return x
         try:
-            S = string.upper(x)
+            S = x.upper()
         except:
-            raise ValueError, 'Must be boolean'
+            raise ValueError('Must be boolean')
         if S in ('YES','TRUE'): return True
         if S in ('NO','FALSE',None): return False
-        raise ValueError, 'Must be boolean'
+        raise ValueError('Must be boolean')
 
 class _isString(Validator):
     def test(self,x):
-        return type(x) in (StringType, UnicodeType)
+        return isStrType(x)
 
 class _isCodec(Validator):
     def test(self,x):
-        if type(x) not in (StringType, UnicodeType):
+        if not isStrType(x):
             return False
         try:
             a,b,c,d = codecs.lookup(x)
@@ -86,7 +78,7 @@ class _isNumber(Validator):
 
 class _isInt(Validator):
     def test(self,x):
-        if type(x) not in (IntType,StringType): return False
+        if not (isStrType(x) or type(x) is int): return False
         return self.normalizeTest(x)
 
     def normalize(self,x):
@@ -125,7 +117,7 @@ class _isListOfShapes(Validator):
     "ListOfShapes validator class."
     def test(self, x):
         from reportlab.graphics.shapes import Shape
-        if type(x) in _SequenceTypes:
+        if isSeqType(x):
             answer = 1
             for e in x:
                 if not isinstance(e, Shape):
@@ -144,7 +136,7 @@ class _isListOfStringsOrNone(Validator):
 class _isTransform(Validator):
     "Transform validator class."
     def test(self, x):
-        if type(x) in _SequenceTypes:
+        if isSeqType(x):
             if len(x) == 6:
                 for element in x:
                     if not isNumber(element):
@@ -205,9 +197,9 @@ class OneOf(Validator):
     (1,1,0)
     """
     def __init__(self, enum,*args):
-        if type(enum) in [ListType,TupleType]:
+        if isSeqType(enum):
             if args!=():
-                raise ValueError, "Either all singleton args or a single sequence argument"
+                raise ValueError("Either all singleton args or a single sequence argument")
             self._enum = tuple(enum)+args
         else:
             self._enum = (enum,)+args
@@ -224,7 +216,7 @@ class SequenceOf(Validator):
         if name: self._str = name
 
     def test(self, x):
-        if type(x) not in _SequenceTypes:
+        if not isSeqType(x):
             if x is None: return self._NoneOK
             return False
         if x==[] or x==():
@@ -236,7 +228,7 @@ class SequenceOf(Validator):
 
 class EitherOr(Validator):
     def __init__(self,tests,name=None):
-        if type(tests) not in _SequenceTypes: tests = (tests,)
+        if not isSeqType(tests): tests = (tests,)
         self._tests = tests
         if name: self._str = name
 
@@ -277,8 +269,8 @@ class matchesPattern(Validator):
         self._pattern = re.compile(pattern)
 
     def test(self,x):
-        print 'testing %s against %s' % (x, self._pattern)
-        if type(x) is StringType:
+        print('testing %s against %s' % (x, self._pattern))
+        if type(x) is str:
             text = x
         else:
             text = str(x)

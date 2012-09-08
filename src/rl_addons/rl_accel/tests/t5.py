@@ -21,7 +21,7 @@ print [getCharWidth(x) for x in (1,2,30000,32,65)]==[_py_getCharWidth(x) for x i
 
 def tim(N,msg,func,*args):
     t0 = time.time()
-    for i in xrange(N):
+    for i in range(N):
         x = func(*args)
     t1 = time.time()
     return "%s N=%d t=%.3f\n%r" % (msg,N,t1-t0,x)

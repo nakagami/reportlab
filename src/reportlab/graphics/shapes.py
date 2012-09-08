@@ -7,13 +7,13 @@ __doc__='''Core of the graphics library - defines Drawing and Shapes'''
 
 import string, os, sys
 from math import pi, cos, sin, tan
-from types import FloatType, IntType, ListType, TupleType, StringType, InstanceType
 from pprint import pprint
 
 from reportlab.platypus import Flowable
 from reportlab.rl_config import shapeChecking, verbose, defaultGraphicsFontName as _baseGFontName, _unset_
 from reportlab.lib import logger
 from reportlab.lib import colors
+from reportlab.lib.utils import isSeqType
 from reportlab.lib.validators import *
 isOpacity = NoneOr(isNumberInRange(0,1))
 from reportlab.lib.attrmap import *
@@ -195,7 +195,7 @@ class _SetKeyWordArgs:
 
 def getRectsBounds(rectList):
     # filter out any None objects, e.g. empty groups
-    L = filter(lambda x: x is not None, rectList)
+    L = [x for x in rectList if x is not None]
     if not L: return None
 
     xMin, yMin, xMax, yMax = L[0]
@@ -213,16 +213,16 @@ def getRectsBounds(rectList):
 def getPathBounds(points):
     n = len(points)
     f = lambda i,p = points: p[i]
-    xs = map(f,xrange(0,n,2))
-    ys = map(f,xrange(1,n,2))
+    xs = [f(x) for x in range(0,n,2)]
+    ys = [f(x) for x in range(1,n,2)]
     return (min(xs), min(ys), max(xs), max(ys))
 
 def getPointsBounds(pointList):
     "Helper function for list of points"
     first = pointList[0]
-    if type(first) in (ListType, TupleType):
-        xs = map(lambda xy: xy[0],pointList)
-        ys = map(lambda xy: xy[1],pointList)
+    if isSeqType(first):
+        xs = [xy[0] for xy in pointList]
+        ys = [xy[1] for xy in pointList]
         return (min(xs), min(ys), max(xs), max(ys))
     else:
         return getPathBounds(pointList)
@@ -245,7 +245,7 @@ class Shape(_SetKeyWordArgs,_DrawTimeResizeable):
         """Return a clone of this shape."""
 
         # implement this in the descendants as they need the right init methods.
-        raise NotImplementedError, "No copy method implemented for %s" % self.__class__.__name__
+        raise NotImplementedError("No copy method implemented for %s" % self.__class__.__name__)
 
     def getProperties(self,recur=1):
         """Interface to make it easy to extract automatic
@@ -277,7 +277,7 @@ class Shape(_SetKeyWordArgs,_DrawTimeResizeable):
         if prefix:
             prefix = prefix + '.'
         for (name, value) in propList:
-            print '%s%s = %s' % (prefix, name, value)
+            print('%s%s = %s' % (prefix, name, value))
 
     def verify(self):
         """If the programmer has provided the optional
@@ -303,6 +303,8 @@ class Shape(_SetKeyWordArgs,_DrawTimeResizeable):
         def __setattr__(self, attr, value):
             """By default we verify.  This could be off
             in some parallel base classes."""
+            if sys.version_info[0] == 3 and type(value) is bytes:
+                value = value.decode('utf-8')
             validateSetattr(self,attr,value)    #from reportlab.lib.attrmap
 
     def getBounds(self):
@@ -531,13 +533,13 @@ def _repr(self,I=None):
             return s[:-1]+')'
         else:
             return repr(self)
-    elif type(self) is FloatType:
+    elif type(self) is float:
         return fp_str(self)
-    elif type(self) in (ListType,TupleType):
+    elif type(self) in (list,tuple):
         s = ''
         for v in self:
             s = s + '%s,' % _repr(v,I)
-        if type(self) is ListType:
+        if type(self) is list:
             return '[%s]' % s[:-1]
         else:
             return '(%s%s)' % (s[:-1],len(self)==1 and ',' or '')
@@ -621,7 +623,7 @@ class Drawing(Group, Flowable):
         """This is used by the Platypus framework to let the document
         draw itself in a story.  It is specific to PDF and should not
         be used directly."""
-        import renderPDF
+        from reportlab.graphics import renderPDF
         renderPDF.draw(self, self.canv, 0, 0, showBoundary=showBoundary)
 
     def wrap(self, availWidth, availHeight):
@@ -672,7 +674,7 @@ class Drawing(Group, Flowable):
             else:
                 try:
                     fnRoot = fnRoot % chartId
-                except TypeError, err:
+                except TypeError(err):
                     #the exact error message changed from 2.2 to 2.3 so we need to
                     #check a substring
                     if str(err).find('not all arguments converted') < 0: raise
@@ -687,7 +689,7 @@ class Drawing(Group, Flowable):
         if not os.path.isdir(outDir): os.makedirs(outDir)
         fnroot = os.path.normpath(os.path.join(outDir,fnRoot))
         plotMode = os.path.splitext(fnroot)
-        if string.lower(plotMode[1][1:]) in self._saveModes:
+        if plotMode[1][1:].lower() in self._saveModes:
             fnroot = plotMode[0]
 
         plotMode = [x.lower() for x in (formats or getattr(self,'formats',['pdf']))]
@@ -697,7 +699,7 @@ class Drawing(Group, Flowable):
         if 'pdf' in plotMode:
             from reportlab.graphics import renderPDF
             filename = fnroot+'.pdf'
-            if verbose: print genFmt % ('PDF',filename)
+            if verbose: print(genFmt % ('PDF',filename))
             renderPDF.drawToFile(self, filename, title, showBoundary=getattr(self,'showBorder',rl_config.showBoundary),**_extraKW(self,'_renderPDF_',**kw))
             ext = ext +  '/.pdf'
             if sys.platform=='mac':
@@ -709,7 +711,7 @@ class Drawing(Group, Flowable):
             if bmFmt in plotMode:
                 from reportlab.graphics import renderPM
                 filename = '%s.%s' % (fnroot,bmFmt)
-                if verbose: print genFmt % (bmFmt,filename)
+                if verbose: print(genFmt % (bmFmt,filename))
                 dtc = getattr(self,'_drawTimeCollector',None)
                 if dtc:
                     dtcfmts = getattr(dtc,'formats',[bmFmt])
@@ -727,7 +729,7 @@ class Drawing(Group, Flowable):
             except ImportError:
                 from reportlab.graphics import renderPS
             filename = fnroot+'.eps'
-            if verbose: print genFmt % ('EPS',filename)
+            if verbose: print(genFmt % ('EPS',filename))
             renderPS.drawToFile(self,
                                 filename,
                                 title = fnroot,
@@ -742,7 +744,7 @@ class Drawing(Group, Flowable):
         if 'svg' in plotMode:
             from reportlab.graphics import renderSVG
             filename = fnroot+'.svg'
-            if verbose: print genFmt % ('SVG',filename)
+            if verbose: print(genFmt % ('SVG',filename))
             renderSVG.drawToFile(self,
                                 filename,
                                 showBoundary=getattr(self,'showBorder',rl_config.showBoundary),**_extraKW(self,'_renderSVG_',**kw))
@@ -751,13 +753,13 @@ class Drawing(Group, Flowable):
         if 'ps' in plotMode:
             from reportlab.graphics import renderPS
             filename = fnroot+'.ps'
-            if verbose: print genFmt % ('EPS',filename)
+            if verbose: print(genFmt % ('EPS',filename))
             renderPS.drawToFile(self, filename, showBoundary=getattr(self,'showBorder',rl_config.showBoundary),**_extraKW(self,'_renderPS_',**kw))
             ext = ext +  '/.ps'
 
         if 'py' in plotMode:
             filename = fnroot+'.py'
-            if verbose: print genFmt % ('py',filename)
+            if verbose: print(genFmt % ('py',filename))
             open(filename,'w').write(self._renderPy())
             ext = ext +  '/.py'
 
@@ -832,7 +834,7 @@ class _DrawingEditorMixin:
         elif name:
             setattr(obj,name,value)
         else:
-            raise ValueError, "Can't add, need name"
+            raise ValueError("Can't add, need name")
 
 class LineShape(Shape):
     # base for types of lines
@@ -987,7 +989,7 @@ def getArcPoints(centerx, centery, radius, startangledegrees, endangledegrees, y
         n = 1
         radiansdelta = 0
 
-    for angle in xrange(n):
+    for angle in range(n):
         angle = startangle+angle*radiansdelta
         a((centerx+radius*cos(angle),centery+yradius*sin(angle)))
 
@@ -1007,21 +1009,21 @@ def definePath(pathSegs=[],isClipPath=0, dx=0, dy=0, **kw):
     O = []
     P = []
     for seg in pathSegs:
-        if type(seg) not in [ListType,TupleType]:
+        if not isSeqType(seg):
             opName = seg
             args = []
         else:
             opName = seg[0]
             args = seg[1:]
         if opName not in _PATH_OP_NAMES:
-            raise ValueError, 'bad operator name %s' % opName
+            raise ValueError('bad operator name %s' % opName)
         op = _PATH_OP_NAMES.index(opName)
         if len(args)!=_PATH_OP_ARG_COUNT[op]:
-            raise ValueError, '%s bad arguments %s' % (opName,str(args))
+            raise ValueError('%s bad arguments %s' % (opName,str(args)))
         O.append(op)
         P.extend(list(args))
     for d,o in (dx,0), (dy,1):
-        for i in xrange(o,len(P),2):
+        for i in range(o,len(P),2):
             P[i] = P[i]+d
     return Path(P,O,isClipPath,**kw)
 
@@ -1194,7 +1196,7 @@ class Wedge(SolidShape):
         CA = []
         CAA = CA.append
         a = points.append
-        for angle in xrange(n):
+        for angle in range(n):
             angle = startangle+angle*radiansdelta
             CAA((cos(angle),sin(angle)))
         for c,s in CA:
@@ -1256,7 +1258,7 @@ class PolyLine(LineShape):
         points = points or []
         lenPoints = len(points)
         if lenPoints:
-            if type(points[0]) in (ListType,TupleType):
+            if isSeqType(points[0]):
                 L = []
                 for (x,y) in points:
                     L.append(x)
@@ -1345,24 +1347,24 @@ class UserNode(_DrawTimeResizeable):
         added to drawings; they must create a shape (typically a group)
         so that the renderer can draw the custom node."""
 
-        raise NotImplementedError, "this method must be redefined by the user/programmer"
+        raise NotImplementedError("this method must be redefined by the user/programmer")
 
 
 def test():
     r = Rect(10,10,200,50)
     import pprint
     pp = pprint.pprint
-    print 'a Rectangle:'
+    print('a Rectangle:')
     pp(r.getProperties())
-    print
-    print 'verifying...',
+    print()
+    print('verifying...')
     r.verify()
-    print 'OK'
+    print('OK')
     #print 'setting rect.z = "spam"'
     #r.z = 'spam'
-    print 'deleting rect.width'
+    print('deleting rect.width')
     del r.width
-    print 'verifying...',
+    print('verifying...')
     r.verify()
 
 

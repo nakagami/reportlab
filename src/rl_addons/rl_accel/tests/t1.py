@@ -8,7 +8,7 @@ import sys
 N = 1000000
 def tim(N,msg,func,*args):
     t0 = time.time()
-    for i in xrange(N):
+    for i in range(N):
         x = func(*args)
     t1 = time.time()
     return "%s N=%d t=%.3f\n%r" % (msg,N,t1-t0,x)

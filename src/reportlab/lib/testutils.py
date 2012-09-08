@@ -10,7 +10,10 @@ nothing more than "reportlab.whatever..."
 """
 
 import sys, os, string, fnmatch, copy, re
-from ConfigParser import ConfigParser
+try:
+    from configparser import ConfigParser
+except ImportError:
+    from ConfigParser import ConfigParser
 import unittest
 
 # Helper functions.
@@ -85,7 +88,7 @@ def printLocation(depth=1):
     if sys._getframe(depth).f_locals.get('__name__')=='__main__':
         outDir = outputfile('')
         if outDir!=_OUTDIR:
-            print 'Logs and output files written to folder "%s"' % outDir
+            print('Logs and output files written to folder "%s"' % outDir)
 
 def makeSuiteForClasses(*classes):
     "Return a test suite with tests loaded from provided classes."
@@ -216,7 +219,7 @@ class RestrictedGlobDirectoryWalker(GlobDirectoryWalker):
         "Filters all items from files matching patterns to ignore."
 
         indicesToDelete = []
-        for i in xrange(len(files)):
+        for i in range(len(files)):
             f = files[i]
             for p in self.ignoredPatterns:
                 if fnmatch.fnmatch(f, p):
@@ -243,7 +246,7 @@ class CVSGlobDirectoryWalker(GlobDirectoryWalker):
         cvsFiles = getCVSEntries(folder)
         if cvsFiles:
             indicesToDelete = []
-            for i in xrange(len(files)):
+            for i in range(len(files)):
                 f = files[i]
                 if join(folder, f) not in cvsFiles:
                     indicesToDelete.append(i)
@@ -327,7 +330,7 @@ class ScriptThatMakesFileTest(unittest.TestCase):
         p = os.popen(fmt % (sys.executable,self.scriptName),'r')
         out = p.read()
         if self.verbose:
-            print out
+            print(out)
         status = p.close()
         assert os.path.isfile(self.outFileName), "File %s not created!" % self.outFileName
 

@@ -9,7 +9,7 @@ fontSize=12
 N = 30000
 def tim(msg,func,*args):
     t0 = time.time()
-    for i in xrange(N):
+    for i in range(N):
         x = func(*args)
     t1 = time.time()
     return "%s N=%d t=%.3f\n%r" % (msg,N,t1-t0,x)

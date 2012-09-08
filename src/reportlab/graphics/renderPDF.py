@@ -18,9 +18,9 @@ changed
 from reportlab.graphics.shapes import *
 from reportlab.pdfgen.canvas import Canvas
 from reportlab.pdfbase.pdfmetrics import stringWidth
-from reportlab.lib.utils import getStringIO
+from reportlab.lib.utils import getBytesIO
 from reportlab import rl_config
-from renderbase import Renderer, StateTracker, getStateDelta, renderScaledDrawing
+from reportlab.graphics.renderbase import Renderer, StateTracker, getStateDelta, renderScaledDrawing
 
 # the main entry point for users...
 def draw(drawing, canvas, x, y, showBoundary=rl_config._unset_):
@@ -164,7 +164,7 @@ class _PDFRenderer(Renderer):
                 elif text_anchor=='numeric':
                     x -= numericXShift(text_anchor,text,textLen,font,font_size,enc)
                 else:
-                    raise ValueError, 'bad value for textAnchor '+str(text_anchor)
+                    raise ValueError('bad value for textAnchor '+str(text_anchor))
             t = self._canvas.beginText(x,y)
             t.textLine(text)
             self._canvas.drawText(t)
@@ -297,7 +297,7 @@ def drawToFile(d, fn, msg="", showBoundary=rl_config._unset_, autoSize=1):
 
 def drawToString(d, msg="", showBoundary=rl_config._unset_,autoSize=1):
     "Returns a PDF as a string in memory, without touching the disk"
-    s = getStringIO()
+    s = getBytesIO()
     drawToFile(d, s, msg=msg, showBoundary=showBoundary,autoSize=autoSize)
     return s.getvalue()
 
@@ -350,7 +350,7 @@ def test():
     if y!=740: c.showPage()
 
     c.save()
-    print 'saved renderPDF.pdf'
+    print('saved renderPDF.pdf')
 
 ##def testFlowable():
 ##    """Makes a platypus document"""

@@ -11,7 +11,6 @@ from reportlab.platypus.paragraph import Paragraph
 from reportlab.platypus.flowables import PageBreak
 import os
 import unittest
-from types import TupleType, ListType, StringType
 
 class TableTestCase(unittest.TestCase):
 
@@ -415,5 +414,5 @@ def makeSuite():
 #noruntests
 if __name__ == "__main__":
     unittest.TextTestRunner().run(makeSuite())
-    print 'saved '+outputfile('test_table_layout.pdf')
+    print('saved '+outputfile('test_table_layout.pdf'))
     printLocation()

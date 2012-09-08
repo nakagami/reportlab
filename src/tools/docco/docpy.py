@@ -34,7 +34,6 @@ __version__ = '0.8'
 
 
 import sys, os, re, types, string, getopt, copy, time
-from string import find, join, split, replace, expandtabs, rstrip
 
 from reportlab.pdfgen import canvas
 from reportlab.lib import colors
@@ -74,7 +73,7 @@ def mainPageFrame(canvas, doc):
         canvas.setFont('Times-Roman', 12)
         canvas.drawString(4 * inch, cm, "%d" % pageNumber)
         if hasattr(canvas, 'headerLine'): # hackish
-            headerline = string.join(canvas.headerLine, ' \215 ') # bullet
+            headerline = ' \215 '.join(canvas.headerLine) # bullet
             canvas.drawString(2*cm, A4[1]-1.75*cm, headerline)
 
     canvas.setFont('Times-Roman', 8)
@@ -154,9 +153,7 @@ class MyTemplate(BaseDocTemplate):
 
 def htmlescape(text):
     "Escape special HTML characters, namely &, <, >."
-    return replace(replace(replace(text, '&', '&amp;'),
-                                         '<', '&lt;'),
-                                         '>', '&gt;')
+    return text.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
 
 def htmlrepr(object):
     return htmlescape(repr(object))
@@ -173,7 +170,7 @@ def getdoc(object):
             result = inspect.getcomments(object)
         except:
             pass
-    return result and rstrip(result) + '\n' or ''
+    return result and result.rstrip() + '\n' or ''
 
 
 def reduceDocStringLength(docStr):
@@ -201,7 +198,7 @@ u    """
     result.append("""</TD></TR></TABLE>""")
     result.append('')
 
-    return join(result, '\n')
+    return '\n'.join(result)
 
 
 def makeHtmlSubSection(text, bgcolor='#AAA0FF'):
@@ -217,7 +214,7 @@ def makeHtmlSubSection(text, bgcolor='#AAA0FF'):
     result.append("""</TD></TR></TABLE>""")
     result.append('')
 
-    return join(result, '\n')
+    return '\n'.join(result)
 
 
 def makeHtmlInlineImage(text):
@@ -276,7 +273,7 @@ class ModuleSkeleton0:
             self._inspectBuiltin(object)
         else:
             msg = "Don't know how to document this kind of object."
-            raise TypeError, msg
+            raise TypeError(msg)
 
 
     def _inspectModule(self, object):
@@ -401,7 +398,7 @@ class ModuleSkeleton0:
     def _inspectBuiltin(self, object):
         """Collect information about a given built-in."""
 
-        print object.__name__ + '( ... )'
+        print(object.__name__ + '( ... )')
 
 
     def walk(self, formatter):
@@ -613,7 +610,7 @@ class AsciiDocBuilder0(DocBuilder0):
 
         if bases:
             bases = map(lambda b:b.__name__, bases) # hack
-            append('%s%s(%s)' % (lev*label, name, join(bases, ', ')))
+            append('%s%s(%s)' % (lev*label, name, ', '.join(bases)))
         else:
             append('%s%s' % (lev*label, name))
         return
@@ -721,7 +718,7 @@ class HtmlDocBuilder0(DocBuilder0):
 
         if bases:
             bases = map(lambda b:b.__name__, bases) # hack
-            self.outLines.append(makeHtmlSubSection('%s(%s)' % (name, join(bases, ', '))))
+            self.outLines.append(makeHtmlSubSection('%s(%s)' % (name, ', '.join(bases))))
         else:
             self.outLines.append(makeHtmlSubSection('%s' % name))
         for line in split(doc, '\n'):
@@ -833,7 +830,7 @@ class PdfDocBuilder0(DocBuilder0):
             self.outPath = self.skeleton.getModuleName() + self.fileSuffix
         else:
             self.outPath = ''
-        print 'output path is %s' % self.outPath
+        print('output path is %s' % self.outPath)
         if self.outPath:
             doc = MyTemplate(self.outPath)
             doc.multiBuild(self.story)
@@ -876,7 +873,7 @@ class PdfDocBuilder0(DocBuilder0):
         story = self.story
         if bases:
             bases = map(lambda b:b.__name__, bases) # hack
-            story.append(Paragraph('%s(%s)' % (name, join(bases, ', ')), self.makeHeadingStyle(self.indentLevel, 'class')))
+            story.append(Paragraph('%s(%s)' % (name, ', '.join(bases)), self.makeHeadingStyle(self.indentLevel, 'class')))
         else:
             story.append(Paragraph(name, self.makeHeadingStyle(self.indentLevel, 'class')))
 
@@ -960,7 +957,7 @@ class UmlPdfDocBuilder0(PdfDocBuilder0):
 
         if bases:
             bases = map(lambda b:b.__name__, bases) # hack
-            self.classCompartment = '%s(%s)' % (name, join(bases, ', '))
+            self.classCompartment = '%s(%s)' % (name, ', '.join(bases))
         else:
             self.classCompartment = name
 
@@ -1130,7 +1127,7 @@ def documentModule0(pathOrName, builder, opts={}):
     try:
         module = __import__(modname)
     except:
-        print 'Failed to import %s.' % modname
+        print('Failed to import %s.' % modname)
         os.chdir(cwd)
         return
 
@@ -1146,8 +1143,9 @@ def documentModule0(pathOrName, builder, opts={}):
     os.chdir(cwd)
 
 
-def _packageWalkCallback((builder, opts), dirPath, files):
+def _packageWalkCallback(builderopts, dirPath, files):
     "A callback function used when waking over a package tree."
+    builder, opts = builderopts
 
     # Skip __init__ files.
     files = filter(lambda f:f != '__init__.py', files)
@@ -1156,7 +1154,7 @@ def _packageWalkCallback((builder, opts), dirPath, files):
     for f in files:
         path = os.path.join(dirPath, f)
         if not opts.get('isSilent', 0):
-            print path
+            print(path)
         builder.indentLevel = builder.indentLevel + 1
         documentModule0(path, builder)
         builder.indentLevel = builder.indentLevel - 1
@@ -1207,7 +1205,7 @@ def main():
 
     # On -h print usage and exit immediately.
     if hasOpt('-h'):
-        print printUsage.__doc__
+        print(printUsage.__doc__)
         sys.exit(0)
 
     # On -s set silent mode.
@@ -1228,19 +1226,19 @@ def main():
     if hasOpt('-m'):
         nameOrPath = optsDict['-m']
         if not isSilent:
-            print "Generating documentation for module %s..." % nameOrPath
+            print("Generating documentation for module %s..." % nameOrPath)
         builder.begin(name=nameOrPath, typ='module')
         documentModule0(nameOrPath, builder, options)
     elif hasOpt('-p'):
         nameOrPath = optsDict['-p']
         if not isSilent:
-            print "Generating documentation for package %s..." % nameOrPath
+            print("Generating documentation for package %s..." % nameOrPath)
         builder.begin(name=nameOrPath, typ='package')
         documentPackage0(nameOrPath, builder, options)
     builder.end()
 
     if not isSilent:
-        print "Saved %s." % builder.outPath
+        print("Saved %s." % builder.outPath)
 
 
 if __name__ == '__main__':

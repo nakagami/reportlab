@@ -5,27 +5,57 @@ __version__=''' $Id: utils.py 3771 2010-09-08 13:23:56Z rgbecker $ '''
 __doc__='''Gazillions of miscellaneous internal utility functions'''
 
 import os, sys, imp, time
-try:
-    from hashlib import md5
-except:
-    from md5 import md5
+import base64
+import pickle
+from io import BytesIO
+import hashlib
 from reportlab.lib.logger import warnOnce
-from rltempfile import get_rl_tempfile, get_rl_tempdir, _rl_getuid
+from reportlab.lib.rltempfile import get_rl_tempfile, get_rl_tempdir, _rl_getuid
+
+def UniChr(v):
+    if sys.version_info[0] == 3:
+        return chr(v)
+    else:
+        return unichr(v)
+
+def isStrType(v):
+    if sys.version_info[0] == 3:
+        return isinstance(v, str)
+    else:
+        return isinstance(v, basestring)
+
+def isBytesType(v):
+    if sys.version_info[0] == 3:
+        return isinstance(v, bytes)
+    else:
+        return isinstance(v, str)
+
+def isUnicodeType(v):
+    if sys.version_info[0] == 3:
+        return isinstance(v, str)
+    else:
+        return isinstance(v, unicode)
+
+def isFunctionType(v):
+    return type(v) == type(isFunctionType)
+
+def isClassType(v):
+    if sys.version_info[0] == 3:
+        return isinstance(v, type)
+    else:
+        import types
+        return isinstance(v, types.ClassType)
+
+def isMethodType(v):
+    class c:
+        def m(self): pass
+    return type(v) == type(c.m)
+
+def isModuleType(v):
+    return type(v) == type(sys)
 
 def isSeqType(v,_st=(tuple,list)):
     return isinstance(v,_st)
-
-if sys.hexversion<0x2030000:
-    True = 1
-    False = 0
-
-if sys.hexversion >= 0x02000000:
-    def _digester(s):
-        return md5(s).hexdigest()
-else:
-    # hexdigest not available in 1.5
-    def _digester(s):
-        return join(map(lambda x : "%02x" % ord(x), md5(s).digest()), '')
 
 def _findFiles(dirList,ext='.ttf'):
     from os.path import isfile, isdir, join as path_join
@@ -244,7 +274,7 @@ except ImportError:
                     try:
                         if n[-1]=='.': n = n[:-1]
                     except:
-                        print i, n
+                        print(i, n)
                         raise
                 A((n[0]!='0' or len(n)==1) and n or n[1:])
         return ' '.join(s)
@@ -254,47 +284,6 @@ if ',' in fp_str(0.25):
     _FP_STR = fp_str
     def fp_str(*a):
         return _FP_STR(*a).replace(',','.')
-
-def recursiveImport(modulename, baseDir=None, noCWD=0, debug=0):
-    """Dynamically imports possible packagized module, or raises ImportError"""
-    normalize = lambda x: os.path.normcase(os.path.abspath(os.path.normpath(x)))
-    path = map(normalize,sys.path)
-    if baseDir:
-        if not isSeqType(baseDir):
-            tp = [baseDir]
-        else:
-            tp = filter(None,list(baseDir))
-        for p in tp:
-            p = normalize(p)
-            if p not in path: path.insert(0,p)
-
-    if noCWD:
-        for p in ('','.',normalize('.')):
-            while p in path:
-                if debug: print 'removed "%s" from path' % p
-                path.remove(p)
-    elif '.' not in path:
-            path.insert(0,'.')
-
-    if debug:
-        import pprint
-        pp = pprint.pprint
-        print 'path=',
-        pp(path)
-
-    #make import errors a bit more informative
-    opath = sys.path
-    try:
-        sys.path = path
-        exec 'import %s\nm = %s\n' % (modulename,modulename) in locals()
-        sys.path = opath
-        return m
-    except ImportError:
-        sys.path = opath
-        msg = "recursiveimport(%s,baseDir=%s) failed" % (modulename,baseDir)
-        if baseDir:
-            msg = msg + " under paths '%s'" % repr(path)
-        raise ImportError, msg
 
 def recursiveGetAttr(obj, name):
     "Can call down into e.g. object1.object2[4].attr"
@@ -342,14 +331,11 @@ else:
             Image = None
     haveImages = Image is not None
 
-try:
-    from cStringIO import StringIO as __StringIO
-except ImportError:
-    from StringIO import StringIO as __StringIO
-def getStringIO(buf=None):
+def getBytesIO(buf=None):
     '''unified StringIO instance interface'''
-    return buf is not None and __StringIO(buf) or __StringIO()
-_StringIOKlass=__StringIO().__class__
+    if buf:
+        return BytesIO(buf)
+    return BytesIO()
 
 class ArgvDictValue:
     '''A type to allow clients of getArgvDict to specify a conversion function'''
@@ -366,8 +352,7 @@ def getArgvDict(**kw):
         if func:
             v = func(av)
         else:
-            if isinstance(v,basestring):
-                if isinstance(v,unicode): v = v.encode('utf8')
+            if isStrType(v):
                 v = av
             elif isinstance(v,float):
                 v = float(av)
@@ -407,7 +392,7 @@ def getHyphenater(hDict=None):
         from reportlab.lib.pyHnj import Hyphen
         if hDict is None: hDict=os.path.join(os.path.dirname(__file__),'hyphen.mashed')
         return Hyphen(hDict)
-    except ImportError, errMsg:
+    except ImportError as errMsg:
         if str(errMsg)!='No module named pyHnj': raise
         return None
 
@@ -432,20 +417,25 @@ def open_for_read_by_name(name,mode='b'):
         name = _startswith_rl(name)
         s = __loader__.get_data(name)
         if 'b' not in mode and os.linesep!='\n': s = s.replace(os.linesep,'\n')
-        return getStringIO(s)
+        return getBytesIO(s)
 
-import urllib2
-def open_for_read(name,mode='b', urlopen=urllib2.urlopen):
+def open_for_read(name,mode='b', urlopen=None):
     '''attempt to open a file or URL for reading'''
     if hasattr(name,'read'): return name
+    if not urlopen:
+        try:
+            import urllib2
+            urlopen=urllib2.urlopen
+        except ImportError:
+            import urllib.request
+            urlopen=urllib.request.urlopen
     try:
         return open_for_read_by_name(name,mode)
     except:
         try:
-            return getStringIO(urlopen(name).read())
+            return getBytesIO(urlopen(name).read())
         except:
             raise IOError('Cannot open resource "%s"' % name)
-del urllib2
 
 def open_and_read(name,mode='b'):
     return open_for_read(name,mode).read()
@@ -517,10 +507,13 @@ def rl_get_module(name,dir):
         if f: f.close()
 
 def _isPILImage(im):
-    try:
-        return isinstance(im,Image.Image)
-    except ImportError:
-        return 0
+    if haveImages:
+        try:
+            return isinstance(im,Image.Image)
+        except ImportError:
+            return False
+    else:
+        return False
 
 class ImageReader(object):
     "Wraps up either PIL or Java to get data from bitmaps"
@@ -549,7 +542,7 @@ class ImageReader(object):
             try:
                 from reportlab.rl_config import imageReaderFlags
                 self.fp = open_for_read(fileName,'b')
-                if isinstance(self.fp,_StringIOKlass):  imageReaderFlags=0 #avoid messing with already internal files
+                if isinstance(self.fp,BytesIO):  imageReaderFlags=0 #avoid messing with already internal files
                 if imageReaderFlags>0:  #interning
                     data = self.fp.read()
                     if imageReaderFlags&2:  #autoclose
@@ -561,8 +554,8 @@ class ImageReader(object):
                         if not self._cache:
                             from rl_config import register_reset
                             register_reset(self._cache.clear)
-                        data=self._cache.setdefault(md5(data).digest(),data)
-                    self.fp=getStringIO(data)
+                        data=self._cache.setdefault(hashlib.md5(data).digest(),data)
+                    self.fp=getBytesIO(data)
                 elif imageReaderFlags==-1 and isinstance(fileName,(str,unicode)):
                     #try Ralf Schmitt's re-opening technique of avoiding too many open files
                     self.fp.close()
@@ -589,7 +582,7 @@ class ImageReader(object):
     def identity(self):
         '''try to return information that will identify the instance'''
         fn = self.fileName
-        if not isinstance(fn,basestring):
+        if not isStrType(fn):
             fn = getattr(getattr(self,'fp',None),'name',None)
         ident = self._ident
         return '[%s@%s%s%s]' % (self.__class__.__name__,hex(id(self)),ident and (' ident=%r' % ident) or '',fn and (' filename=%r' % fn) or '')
@@ -732,7 +725,7 @@ class DebugMemo:
         self.store = store = {}
         if capture_traceback and sys.exc_info() != (None,None,None):
             import traceback
-            s = getStringIO()
+            s = getBytesIO()
             traceback.print_exc(None,s)
             store['__traceback'] = s.getvalue()
         cwd=os.getcwd()
@@ -750,7 +743,6 @@ class DebugMemo:
             pass
         env = os.environ
         K=env.keys()
-        K.sort()
         store.update({  'gmt': time.asctime(time.gmtime(time.time())),
                         'platform': sys.platform,
                         'version': sys.version,
@@ -819,13 +811,12 @@ class DebugMemo:
         self._add(kw)
 
     def _dump(self,f):
-        import pickle
         try:
             pos=f.tell()
             pickle.dump(self.store,f)
         except:
             S=self.store.copy()
-            ff=getStringIO()
+            ff=getBytesIO()
             for k,v in S.iteritems():
                 try:
                     pickle.dump({k:v},ff)
@@ -842,12 +833,11 @@ class DebugMemo:
             f.close()
 
     def dumps(self):
-        f = getStringIO()
+        f = getBytesIO()
         self._dump(f)
         return f.getvalue()
 
     def _load(self,f):
-        import pickle
         self.store = pickle.load(f)
 
     def load(self):
@@ -858,7 +848,7 @@ class DebugMemo:
             f.close()
 
     def loads(self,s):
-        self._load(getStringIO(s))
+        self._load(getBytesIO(s))
 
     def _show_module_versions(self,k,v):
         self._writeln(k[2:])
@@ -868,7 +858,8 @@ class DebugMemo:
             vk = vk0 = v[k]
             if isinstance(vk,tuple): vk0 = vk[0]
             try:
-                m = recursiveImport(k,sys.path[:],1)
+                __import__(k)
+                m = sys.modules[k]
                 d = getattr(m,'__version__',None)==vk0 and 'SAME' or 'DIFFERENT'
             except:
                 m = None
@@ -904,7 +895,8 @@ class DebugMemo:
         for mn in ('_rl_accel','_renderPM','sgmlop','pyRXP','pyRXPU','_imaging','Image'):
             try:
                 A = [mn].append
-                m = recursiveImport(mn,sys.path[:],1)
+                __import__(mn)
+                m = sys.modules[mn]
                 A(m.__file__)
                 for vn in ('__version__','VERSION','_version','version'):
                     if hasattr(m,vn):
@@ -1015,16 +1007,6 @@ def escapeTextOnce(text):
     text = text.replace('&amp;lt;', '&lt;')
     return text
 
-def fileName2Utf8(fn):
-    '''attempt to convert a filename to utf8'''
-    from reportlab.rl_config import fsEncodings
-    for enc in fsEncodings:
-        try:
-            return fn.decode(enc).encode('utf8')
-        except:
-            pass
-    raise ValueError('cannot convert %r to utf8' % fn)
-
 
 import itertools
 def prev_this_next(items):
@@ -1120,18 +1102,19 @@ def annotateException(msg,enc='utf8'):
     e = -1
     A = list(v.args)
     for i,a in enumerate(A):
-        if isinstance(a,basestring):
+        if isStrType(a):
             e = i
             break
     if e>=0:
-        if isinstance(a,unicode):
-            if not isinstance(msg,unicode):
-                msg=msg.decode(enc)
-        else:
-            if isinstance(msg,unicode):
-                msg=msg.encode(enc)
+        if sys.version_info[0] != 3:
+            if isinstance(a,unicode):
+                if not isinstance(msg,unicode):
+                    msg=msg.decode(enc)
             else:
-                msg = str(msg)
+                if isinstance(msg,unicode):
+                    msg=msg.encode(enc)
+                else:
+                    msg = str(msg)
         if isinstance(v,IOError) and getattr(v,'strerror',None):
             v.strerror = msg+'\n'+str(v.strerror)
         else:
@@ -1139,7 +1122,10 @@ def annotateException(msg,enc='utf8'):
     else:
         A.append(msg)
     v.args = tuple(A)
-    raise t,v,b
+    e = t(v)
+    e.__traceback__ = b
+    raise e
+
     
 def escapeOnce(data):
     """Ensure XML output is escaped just once, irrespective of input
@@ -1167,4 +1153,16 @@ def escapeOnce(data):
     data = data.replace("&amp;gt;", "&gt;")
     data = data.replace("&amp;lt;", "&lt;")
     return data
+
+def encode_label(args):
+    s = base64.encodestring(pickle.dumps(args)).strip()
+    if not isStrType(s):
+        s = s.decode('utf-8')
+    return s
+
+def decode_label(label):
+    if isUnicodeType(label):
+        label = label.encode('utf-8')
+    v = pickle.loads(base64.decodestring(label))
+    return v
     

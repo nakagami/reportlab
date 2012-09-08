@@ -4,11 +4,11 @@
 __version__=''' $Id: xpreformatted.py 3768 2010-09-07 14:24:27Z rgbecker $ '''
 __doc__='''A 'rich preformatted text' widget allowing internal markup'''
 import string
-from types import StringType, ListType
 from reportlab.lib import PyFontify
-from paragraph import Paragraph, cleanBlockQuotedText, _handleBulletWidth, \
+from reportlab.lib.utils import isSeqType
+from reportlab.platypus.paragraph import Paragraph, cleanBlockQuotedText, _handleBulletWidth, \
      ParaLines, _getFragWords, stringWidth, _sameFrag, getAscentDescent, imgVRange, imgNormV
-from flowables import _dedenter
+from reportlab.platypus.flowables import _dedenter
 
 def _getFragLines(frags):
     lines = []
@@ -18,7 +18,7 @@ def _getFragLines(frags):
         w = W[0]
         t = w.text
         del W[0]
-        i = string.find(t,'\n')
+        i = t.find('\n')
         if i>=0:
             tleft = t[i+1:]
             cline.append(w.clone(text=t[:i]))
@@ -41,14 +41,7 @@ def _split_blPara(blPara,start,stop):
 
 # Will be removed shortly.
 def _countSpaces(text):
-    return string.count(text, ' ')
-##  i = 0
-##  s = 0
-##  while 1:
-##      j = string.find(text,' ',i)
-##      if j<0: return s
-##      s = s + 1
-##      i = j + 1
+    return text.count(' ')
 
 def _getFragWord(frags,maxWidth):
     ''' given a fragment list return a list of lists
@@ -69,7 +62,7 @@ def _getFragWord(frags,maxWidth):
         n = n + stringWidth(text, f.fontName, f.fontSize)
 
         #s = s + _countSpaces(text)
-        s = s + string.count(text, ' ') # much faster for many blanks
+        s = s + text.count(' ') # much faster for many blanks
 
         #del f.text # we can't do this until we sort out splitting
                     # of paragraphs
@@ -78,7 +71,7 @@ def _getFragWord(frags,maxWidth):
 class XPreformatted(Paragraph):
     def __init__(self, text, style, bulletText = None, frags=None, caseSensitive=1, dedent=0):
         self.caseSensitive = caseSensitive
-        cleaner = lambda text, dedent=dedent: string.join(_dedenter(text or '',dedent),'\n')
+        cleaner = lambda text, dedent=dedent: '\n'.join(_dedenter(text or '',dedent))
         self._setup(text, style, bulletText, frags, cleaner)
 
     def breakLines(self, width):
@@ -113,7 +106,7 @@ class XPreformatted(Paragraph):
         different first line indent; a longer list could be created to facilitate custom wraps
         around irregular objects."""
 
-        if type(width) != ListType: maxWidths = [width]
+        if not isSeqType(width): maxWidths = [width]
         else: maxWidths = width
         lines = []
         lineno = 0
@@ -137,12 +130,12 @@ class XPreformatted(Paragraph):
                 fontName = f.fontName
                 ascent, descent = getAscentDescent(fontName,fontSize)
                 kind = 0
-                L=string.split(f.text, '\n')
+                L=f.text.split('\n')
                 for l in L:
                     currentWidth = stringWidth(l,fontName,fontSize)
                     requiredWidth = max(currentWidth,requiredWidth)
                     extraSpace = maxWidth-currentWidth
-                    lines.append((extraSpace,string.split(l,' '),currentWidth))
+                    lines.append((extraSpace,l.split(' '),currentWidth))
                     lineno = lineno+1
                     maxWidth = lineno<len(maxWidths) and maxWidths[lineno] or maxWidths[-1]
                 blPara = f.clone(kind=kind, lines=lines,ascent=ascent,descent=descent,fontSize=fontSize)
@@ -221,9 +214,9 @@ class PythonPreformatted(XPreformatted):
         XPreformatted.__init__(self, text, style,bulletText=bulletText,dedent=dedent,frags=frags)
 
     def escapeHtml(self, text):
-        s = string.replace(text, '&', '&amp;')
-        s = string.replace(s, '<', '&lt;')
-        s = string.replace(s, '>', '&gt;')
+        s = text.replace('&', '&amp;')
+        s = s.replace('<', '&lt;')
+        s = s.replace('>', '&gt;')
         return s
 
     def fontify(self, code):
@@ -247,34 +240,34 @@ class PythonPreformatted(XPreformatted):
 
 if __name__=='__main__':    #NORUNTESTS
     def dumpXPreformattedLines(P):
-        print '\n############dumpXPreforemattedLines(%s)' % str(P)
+        print('\n############dumpXPreforemattedLines(%s)' % str(P))
         lines = P.blPara.lines
         n =len(lines)
         for l in range(n):
             line = lines[l]
             words = line.words
             nwords = len(words)
-            print 'line%d: %d(%d)\n  ' % (l,nwords,line.wordCount),
+            print('line%d: %d(%d)\n  ' % (l,nwords,line.wordCount),)
             for w in range(nwords):
-                print "%d:'%s'"%(w,words[w].text),
-            print
+                print("%d:'%s'"%(w,words[w].text),)
+            print()
 
     def dumpXPreformattedFrags(P):
-        print '\n############dumpXPreforemattedFrags(%s)' % str(P)
+        print('\n############dumpXPreforemattedFrags(%s)' % str(P))
         frags = P.frags
         n =len(frags)
         for l in range(n):
-            print "frag%d: '%s'" % (l, frags[l].text)
+            print("frag%d: '%s'" % (l, frags[l].text))
 
         l = 0
         for L in _getFragLines(frags):
             n=0
             for W in _getFragWords(L,360):
-                print "frag%d.%d: size=%d" % (l, n, W[0]),
+                print("frag%d.%d: size=%d" % (l, n, W[0]),)
                 n = n + 1
                 for w in W[1:]:
-                    print "'%s'" % w[1],
-                print
+                    print("'%s'" % w[1],)
+                print()
             l = l + 1
 
     def try_it(text,style,dedent,aW,aH):

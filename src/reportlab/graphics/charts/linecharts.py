@@ -471,7 +471,7 @@ class HorizontalLineChart3D(HorizontalLineChart):
             if self.joinedLines:
                 if n:
                     x0, y0 = row[0]
-                    for colNo in xrange(1,n):
+                    for colNo in range(1,n):
                         x1, y1 = row[colNo]
                         _make_3d_line_info( F, x0, x1, y0, y1, z0, z1,
                                 theta_x, theta_y,
@@ -488,14 +488,14 @@ class HorizontalLineChart3D(HorizontalLineChart):
                 uSymbol = None
 
             if uSymbol:
-                for colNo in xrange(n):
+                for colNo in range(n):
                     x1, y1 = row[colNo]
                     x1, y1 = _zadjust(x1,y1,z0)
                     symbol = uSymbol2Symbol(uSymbol,x1,y1,rowColor)
                     if symbol: F.add((2,z0,z0,x1,y1,symbol))
 
             # Draw item labels.
-            for colNo in xrange(n):
+            for colNo in range(n):
                 x1, y1 = row[colNo]
                 x1, y1 = _zadjust(x1,y1,z0)
                 L = self._innerDrawLabel(rowNo, colNo, x1, y1)

@@ -18,7 +18,7 @@ def warnIgnoredRestofTest():
         warnings.warn(msg)
     else:
         # should better also be printed only once...
-        print msg
+        print(msg)
 
 # Check if we have a default XML parser available or not.
 try:
@@ -57,8 +57,8 @@ class RenderSvgSimpleTestCase(unittest.TestCase):
         fg = svg.getElementsByTagName('g')[0]           # flipping group
         dg = fg.getElementsByTagName('g')[0]            # diagram group
         textChildren = dg.getElementsByTagName('text')  # text nodes
-        t0 = string.strip(textChildren[0].childNodes[0].nodeValue)
-        t1 = string.strip(textChildren[1].childNodes[0].nodeValue)
+        t0 = (textChildren[0].childNodes[0].nodeValue).strip()
+        t1 = (textChildren[1].childNodes[0].nodeValue).strip()
         assert t0 == 'foo'
         assert t1 == 'bar'
 
@@ -83,8 +83,8 @@ class RenderSvgSimpleTestCase(unittest.TestCase):
         dg = fg.getElementsByTagName('g')[0]            # diagram group
         g = dg.getElementsByTagName('g')[0]             # custom group
         textChildren = g.getElementsByTagName('text')   # text nodes
-        t0 = string.strip(textChildren[0].childNodes[0].nodeValue)
-        t1 = string.strip(textChildren[1].childNodes[0].nodeValue)
+        t0 = (textChildren[0].childNodes[0].nodeValue).strip()
+        t1 = (textChildren[1].childNodes[0].nodeValue).strip()
 
         assert t0 == 'foo'
         assert t1 == 'bar'
@@ -112,8 +112,8 @@ class RenderSvgSimpleTestCase(unittest.TestCase):
         dg = fg.getElementsByTagName('g')[0]            # diagram group
         g = dg.getElementsByTagName('g')[0]             # custom group
         textChildren = g.getElementsByTagName('text')   # text nodes
-        t0 = string.strip(textChildren[0].childNodes[0].nodeValue)
-        t1 = string.strip(textChildren[1].childNodes[0].nodeValue)
+        t0 = (textChildren[0].childNodes[0].nodeValue).strip()
+        t1 = (textChildren[1].childNodes[0].nodeValue).strip()
 
         assert t0 == 'foo'
         assert t1 == 'bar'

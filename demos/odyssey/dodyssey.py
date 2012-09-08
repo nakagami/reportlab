@@ -113,7 +113,7 @@ def p(txt, style=ParaStyle):
     if _REDCAP:
         fs, fe = '<font color="red" size="+2">', '</font>'
         n = len(txt)
-        for i in xrange(n):
+        for i in range(n):
             if 'a'<=txt[i]<='z' or 'A'<=txt[i]<='Z':
                 txt = (txt[:i]+(fs+txt[i]+fe))+txt[i+1:]
                 break
@@ -125,7 +125,7 @@ def p(txt, style=ParaStyle):
         if _REDCAP==3 and n>20:
             n = len(txt)
             fs = '<font color="green" size="+1">'
-            for i in xrange(n-1,-1,-1):
+            for i in range(n-1,-1,-1):
                 if 'a'<=txt[i]<='z' or 'A'<=txt[i]<='Z':
                     txt = txt[:i]+((fs+txt[i]+fe)+txt[i+1:])
                     break
@@ -207,7 +207,7 @@ def parseOdyssey(fn):
     del L
     t4 = time()
     print "Deleting list of lines took %.4f seconds" %(t4-t3)
-    for i in xrange(len(E)):
+    for i in range(len(E)):
         E[i][0](*E[i][1:])
     t5 = time()
     print "Moving into platypus took %.4f seconds" %(t5-t4)

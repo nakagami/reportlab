@@ -12,7 +12,6 @@ in based on possible knowledge of the language and desirable 'niceness' of the a
 
 __version__=''' $Id: textsplit.py 3662 2010-02-09 11:23:58Z rgbecker $ '''
 
-from types import StringType, UnicodeType
 import unicodedata
 from reportlab.pdfbase.pdfmetrics import stringWidth
 from reportlab.rl_config import _FUZZ
@@ -67,7 +66,7 @@ def wordSplit(word, availWidth, fontName, fontSize, encoding='utf8'):
     >>> wordSplit('HelloWorld', 31, 'Courier', 10)
     [[1.0, 'Hello'], [1.0, 'World']]
     """
-    if type(word) is not UnicodeType:
+    if type(word) is not type(u''):
         uword = word.decode(encoding)
     else:
         uword = word
@@ -75,7 +74,7 @@ def wordSplit(word, availWidth, fontName, fontSize, encoding='utf8'):
     charWidths = getCharWidths(uword, fontName, fontSize)
     lines = dumbSplit(uword, charWidths, availWidth)
 
-    if type(word) is not UnicodeType:
+    if type(word) is not type(u''):
         lines2 = []
         #convert back
         for (extraSpace, text) in lines:
@@ -109,7 +108,7 @@ def dumbSplit(word, widths, availWidth):
     >>> dumbSplit(jtext, [10]*11, 30)   #
     (u'\u65e5\u672c\u8a9e', u'\u306f\u96e3\u3057\u3044\u3067\u3059\u306d\uff01')
     """
-    assert type(word) is UnicodeType
+    assert type(word) is type(u'')
     lines = []
     widthUsed = 0.0
     lineStartPos = 0

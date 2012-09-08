@@ -75,15 +75,15 @@ class PropertySet:
                     self.__dict__[key] = value
 
     def listAttrs(self, indent=''):
-        print indent + 'name =', self.name
-        print indent + 'parent =', self.parent
+        print(indent + 'name =', self.name)
+        print(indent + 'parent =', self.parent)
         keylist = self.__dict__.keys()
         keylist.sort()
         keylist.remove('name')
         keylist.remove('parent')
         for key in keylist:
             value = self.__dict__.get(key, None)
-            print indent + '%s = %s' % (key, value)
+            print(indent + '%s = %s' % (key, value))
 
 class ParagraphStyle(PropertySet):
     defaults = {
@@ -197,9 +197,9 @@ class StyleSheet1:
             alii[style] = alias
         for (name, style) in styles:
             alias = alii.get(style, None)
-            print name, alias
+            print(name, alias)
             style.listAttrs('    ')
-            print
+            print()
 
 def testStyles():
     pNormal = ParagraphStyle('Normal',None)

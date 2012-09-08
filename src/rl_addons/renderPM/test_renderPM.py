@@ -87,9 +87,9 @@ if  __name__=='__main__':
                 w = c.width
                 h = c.height
                 k = 0
-                for i in xrange(h):
+                for i in range(h):
                     f.write('%6.6x: '% i );
-                    for j in xrange(w):
+                    for j in range(w):
                         v = (ord(b[k])<<16) | (ord(b[k+1])<<8) | ord(b[k+2])
                         k = k + 3
                         f.write(' %6.6x'%v)
@@ -100,9 +100,9 @@ if  __name__=='__main__':
                     im = Image.new('RGB', size=(w, h))
                     im.fromstring(b)
                     f.write('PIL\n')
-                    for i in xrange(h):
+                    for i in range(h):
                         f.write('%6.6x: '% i );
-                        for j in xrange(w):
+                        for j in range(w):
                             v = im.getpixel((i,j))
                             f.write(' %2.2x%2.2x%2.2x'%v)
                         f.write('\n')

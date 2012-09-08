@@ -51,9 +51,10 @@ Oh, and that 14 up there is font size.)
 Canvas and TextObject have special support for dynamic fonts.
 """
 
+import sys
 import string
 from struct import pack, unpack, error as structError
-from reportlab.lib.utils import getStringIO
+from reportlab.lib.utils import getBytesIO, isUnicodeType
 from reportlab.pdfbase import pdfmetrics, pdfdoc
 from reportlab import rl_config
 
@@ -61,16 +62,17 @@ class TTFError(pdfdoc.PDFError):
     "TrueType font exception"
     pass
 
-
-def SUBSETN(n,table=string.maketrans('0123456789','ABCDEFGHIJ')):
-    return ('%6.6d'%n).translate(table)
+if sys.version_info[0] == 3:
+    def SUBSETN(n,table=bytes.maketrans(b'0123456789',b'ABCDEFGHIJ')):
+        return ('%6.6d'%n).translate(table)
+else:
+    def SUBSETN(n,table=string.maketrans('0123456789','ABCDEFGHIJ')):
+        return ('%6.6d'%n).translate(table)
 #
 # Helpers
 #
 
-from codecs import utf_8_encode, utf_8_decode, latin_1_decode
-parse_utf8=lambda x, decode=utf_8_decode: map(ord,decode(x)[0])
-parse_latin1 = lambda x, decode=latin_1_decode: map(ord,decode(x)[0])
+from codecs import utf_8_encode, latin_1_decode
 def latin1_to_utf8(text):
     "helper to convert when needed from latin input"
     return utf_8_encode(latin_1_decode(text)[0])[0]
@@ -100,7 +102,7 @@ def makeToUnicodeCMap(fontname, subset):
         "end",
         "end"
         ]
-    return string.join(cmap, "\n")
+    return '\n'.join(cmap)
 
 def splice(stream, offset, value):
     """Splices the given value into stream at the given offset and
@@ -124,19 +126,19 @@ try:
     hex32 = _rl_accel.hex32
 except:
     def hex32(i):
-        return '0X%8.8X' % (long(i)&0xFFFFFFFFL)
+        return '0X%8.8X' % (i&0xFFFFFFFF)
 try:
     add32 = _rl_accel.add32L
     calcChecksum = _rl_accel.calcChecksumL
 except:
     def add32(x, y):
         "Calculate (x + y) modulo 2**32"
-        return (x+y) & 0xFFFFFFFFL
+        return (x+y) & 0xFFFFFFFF
 
     def calcChecksum(data):
         """Calculates TTF-style checksums"""
-        if len(data)&3: data = data + (4-(len(data)&3))*"\0"
-        return sum(unpack(">%dl" % (len(data)>>2), data)) & 0xFFFFFFFFL
+        if len(data)&3: data = data + (4-(len(data)&3))*b"\0"
+        return sum(unpack(">%dl" % (len(data)>>2), data)) & 0xFFFFFFFF
 del _rl_accel
 #
 # TrueType font handling
@@ -205,7 +207,7 @@ class TTFontParser:
         self.numSubfonts = self.read_ulong()
         self.subfontOffsets = []
         a = self.subfontOffsets.append
-        for i in xrange(self.numSubfonts):
+        for i in range(self.numSubfonts):
             a(self.read_ulong())
 
     def getSubfont(self,subfontIndex):
@@ -230,7 +232,7 @@ class TTFontParser:
             # Read table directory
             self.table = {}
             self.tables = []
-            for n in xrange(self.numTables):
+            for n in range(self.numTables):
                 record = {}
                 record['tag'] = self.read_tag()
                 record['checksum'] = self.read_ulong()
@@ -280,7 +282,7 @@ class TTFontParser:
     def checksumFile(self):
         # Check the checksums for the whole file
         checksum = calcChecksum(self._ttf_data)
-        if 0xB1B0AFBAL!=checksum:
+        if 0xB1B0AFBA!=checksum:
             raise TTFError('TTF file "%s": invalid checksum %s (expected 0xB1B0AFBA) len: %d &3: %d' % (self.filename,hex32(checksum),len(self._ttf_data),(len(self._ttf_data)&3)))
 
     def get_table_pos(self, tag):
@@ -306,7 +308,10 @@ class TTFontParser:
     def read_tag(self):
         "Read a 4-character tag"
         self._pos += 4
-        return self._ttf_data[self._pos - 4:self._pos]
+        s = self._ttf_data[self._pos - 4:self._pos]
+        if sys.version_info[0]==3 and not (s is str):
+            s = s.decode('utf-8')
+        return s
 
     def read_ushort(self):
         "Reads an unsigned short"
@@ -323,8 +328,8 @@ class TTFontParser:
         self._pos += 2
         try:
             return unpack('>h',self._ttf_data[self._pos-2:self._pos])[0]
-        except structError, error:
-            raise TTFError, error
+        except structError as error:
+            raise TTFError(error)
 
     def get_ushort(self, pos):
         "Return an unsigned short at given position"
@@ -353,12 +358,12 @@ class TTFontMaker:
     def add(self, tag, data):
         "Adds a table to the TTF file."
         if tag == 'head':
-            data = splice(data, 8, '\0\0\0\0')
+            data = splice(data, 8, b'\0\0\0\0')
         self.tables[tag] = data
 
     def makeStream(self):
         "Finishes the generation and returns the TTF file as a string"
-        stm = getStringIO()
+        stm = getBytesIO()
         write = stm.write
 
         numTables = len(self.tables)
@@ -375,13 +380,15 @@ class TTFontMaker:
                                  entrySelector, rangeShift))
 
         # Table directory
-        tables = self.tables.items()
+        tables = list(self.tables.items())
         tables.sort()     # XXX is this the correct order?
         offset = 12 + numTables * 16
         for tag, data in tables:
             if tag == 'head':
                 head_start = offset
             checksum = calcChecksum(data)
+            if isUnicodeType(tag):
+                tag = tag.encode('utf-8')
             write(tag)
             write(pack(">LLL", checksum, offset, len(data)))
             paddedLength = (len(data)+3)&~3
@@ -389,11 +396,11 @@ class TTFontMaker:
 
         # Table data
         for tag, data in tables:
-            data += "\0\0\0"
+            data += b"\0\0\0"
             write(data[:len(data)&~3])
 
         checksum = calcChecksum(stm.getvalue())
-        checksum = add32(0xB1B0AFBAL, -checksum)
+        checksum = add32(0xB1B0AFBA, -checksum)
         stm.seek(head_start + 8)
         write(pack('>L', checksum))
 
@@ -444,13 +451,13 @@ class TTFontFile(TTFontParser):
         name_offset = self.seek_table("name")
         format = self.read_ushort()
         if format != 0:
-            raise TTFError, "Unknown name table format (%d)" % format
+            raise TTFError("Unknown name table format (%d)" % format)
         numRecords = self.read_ushort()
         string_data_offset = name_offset + self.read_ushort()
         names = {1:None,2:None,3:None,4:None,6:None}
         K = names.keys()
         nameCount = len(names)
-        for i in xrange(numRecords):
+        for i in range(numRecords):
             platformId = self.read_ushort()
             encodingId = self.read_ushort()
             languageId = self.read_ushort()
@@ -464,7 +471,7 @@ class TTFontFile(TTFontParser):
                 try:
                     self.seek(string_data_offset + offset)
                     if length % 2 != 0:
-                        raise TTFError, "PostScript name is UTF-16BE string of odd length"
+                        raise TTFError("PostScript name is UTF-16BE string of odd length")
                     length /= 2
                     N = []
                     A = N.append
@@ -481,6 +488,8 @@ class TTFontFile(TTFontParser):
                 # you can find live TTF fonts which only have Macintosh format.
                 N = self.get_chunk(string_data_offset + offset, length)
             if N and names[nameId]==None:
+                if sys.version_info[0]==3 and not (N is str):
+                    N = N.decode('utf-8')
                 names[nameId] = N
                 nameCount -= 1
                 if nameCount==0: break
@@ -496,11 +505,11 @@ class TTFontFile(TTFontParser):
 
         # Don't just assume, check for None since some shoddy fonts cause crashes here...
         if not psName:
-            raise TTFError, "Could not find PostScript font name"
+            raise TTFError("Could not find PostScript font name")
         for c in psName:
             oc = ord(c)
             if oc>126 or c in ' [](){}<>/%':
-                raise TTFError, "psName=%r contains invalid character '%s' ie U+%04X" % (psName,c,ord(c))
+                raise TTFError("psName=%r contains invalid character '%s' ie U+%04X" % (psName,c,ord(c)))
         self.name = psName
         self.familyName = names[1] or psName
         self.styleName = names[2] or 'Regular'
@@ -511,13 +520,13 @@ class TTFontFile(TTFontParser):
         self.seek_table("head")
         ver_maj, ver_min = self.read_ushort(), self.read_ushort()
         if ver_maj != 1:
-            raise TTFError, 'Unknown head table version %d.%04x' % (ver_maj, ver_min)
+            raise TTFError('Unknown head table version %d.%04x' % (ver_maj, ver_min))
         self.fontRevision = self.read_ushort(), self.read_ushort()
 
         self.skip(4)
         magic = self.read_ulong()
         if magic != 0x5F0F3CF5:
-            raise TTFError, 'Invalid head table magic %04x' % magic
+            raise TTFError('Invalid head table magic %04x' % magic)
         self.skip(2)
         self.unitsPerEm = unitsPerEm = self.read_ushort()
         scale = lambda x, unitsPerEm=unitsPerEm: x * 1000. / unitsPerEm
@@ -526,7 +535,7 @@ class TTFontFile(TTFontParser):
         yMin = self.read_short()
         xMax = self.read_short()
         yMax = self.read_short()
-        self.bbox = map(scale, [xMin, yMin, xMax, yMax])
+        self.bbox = [scale(i) for i in [xMin, yMin, xMax, yMax]]
         self.skip(3*2)
         indexToLocFormat = self.read_ushort()
         glyphDataFormat = self.read_ushort()
@@ -541,7 +550,7 @@ class TTFontFile(TTFontParser):
             self.skip(2)
             fsType = self.read_ushort()
             if fsType == 0x0002 or (fsType & 0x0300) != 0:
-                raise TTFError, 'Font does not allow subsetting/embedding (%04X)' % fsType
+                raise TTFError('Font does not allow subsetting/embedding (%04X)' % fsType)
             self.skip(58)   #11*2 + 10 + 4*4 + 4 + 3*2
             sTypoAscender = self.read_short()
             sTypoDescender = self.read_short()
@@ -575,7 +584,7 @@ class TTFontFile(TTFontParser):
             # From Apple docs it seems that we do not need to care
             # about the exact version, so if you get this error, you can
             # try to remove this check altogether.
-            raise TTFError, 'Unknown post table version %d.%04x' % (ver_maj, ver_min)
+            raise TTFError('Unknown post table version %d.%04x' % (ver_maj, ver_min))
         self.italicAngle = self.read_short() + self.read_ushort() / 65536.0
         self.underlinePosition = self.read_short()
         self.underlineThickness = self.read_short()
@@ -596,20 +605,20 @@ class TTFontFile(TTFontParser):
         self.seek_table("hhea")
         ver_maj, ver_min = self.read_ushort(), self.read_ushort()
         if ver_maj != 1:
-            raise TTFError, 'Unknown hhea table version %d.%04x' % (ver_maj, ver_min)
+            raise TTFError('Unknown hhea table version %d.%04x' % (ver_maj, ver_min))
         self.skip(28)
         metricDataFormat = self.read_ushort()
         if metricDataFormat != 0:
-            raise TTFError, 'Unknown horizontal metric data format (%d)' % metricDataFormat
+            raise TTFError('Unknown horizontal metric data format (%d)' % metricDataFormat)
         numberOfHMetrics = self.read_ushort()
         if numberOfHMetrics == 0:
-            raise TTFError, 'Number of horizontal metrics is 0'
+            raise TTFError('Number of horizontal metrics is 0')
 
         # maxp - Maximum profile table
         self.seek_table("maxp")
         ver_maj, ver_min = self.read_ushort(), self.read_ushort()
         if ver_maj != 1:
-            raise TTFError, 'Unknown maxp table version %d.%04x' % (ver_maj, ver_min)
+            raise TTFError('Unknown maxp table version %d.%04x' % (ver_maj, ver_min))
         numGlyphs = self.read_ushort()
 
         if not charInfo:
@@ -619,14 +628,14 @@ class TTFontFile(TTFontParser):
             return
 
         if glyphDataFormat != 0:
-            raise TTFError, 'Unknown glyph data format (%d)' % glyphDataFormat
+            raise TTFError('Unknown glyph data format (%d)' % glyphDataFormat)
 
         # cmap - Character to glyph index mapping table
         cmap_offset = self.seek_table("cmap")
         self.skip(2)
         cmapTableCount = self.read_ushort()
         unicode_cmap_offset = None
-        for n in xrange(cmapTableCount):
+        for n in range(cmapTableCount):
             platformID = self.read_ushort()
             encodingID = self.read_ushort()
             offset = self.read_ulong()
@@ -641,25 +650,25 @@ class TTFontFile(TTFontParser):
                     unicode_cmap_offset = cmap_offset + offset
                     break
         if unicode_cmap_offset is None:
-            raise TTFError, 'Font does not have cmap for Unicode (platform 3, encoding 1, format 4 or platform 0 any encoding format 4)'
+            raise TTFError('Font does not have cmap for Unicode (platform 3, encoding 1, format 4 or platform 0 any encoding format 4)')
         self.seek(unicode_cmap_offset + 2)
         length = self.read_ushort()
         limit = unicode_cmap_offset + length
         self.skip(2)
         segCount = int(self.read_ushort() / 2.0)
         self.skip(6)
-        endCount = map(lambda x, self=self: self.read_ushort(), xrange(segCount))
+        endCount = list(map(lambda x, self=self: self.read_ushort(), range(segCount)))
         self.skip(2)
-        startCount = map(lambda x, self=self: self.read_ushort(), xrange(segCount))
-        idDelta = map(lambda x, self=self: self.read_short(), xrange(segCount))
+        startCount = list(map(lambda x, self=self: self.read_ushort(), range(segCount)))
+        idDelta =list(map(lambda x, self=self: self.read_short(), range(segCount)))
         idRangeOffset_start = self._pos
-        idRangeOffset = map(lambda x, self=self: self.read_ushort(), xrange(segCount))
+        idRangeOffset = list(map(lambda x, self=self: self.read_ushort(), range(segCount)))
 
         # Now it gets tricky.
         glyphToChar = {}
         charToGlyph = {}
-        for n in xrange(segCount):
-            for unichar in xrange(startCount[n], endCount[n] + 1):
+        for n in range(segCount):
+            for unichar in range(startCount[n], endCount[n] + 1):
                 if idRangeOffset[n] == 0:
                     glyph = (unichar + idDelta[n]) & 0xFFFF
                 else:
@@ -685,7 +694,7 @@ class TTFontFile(TTFontParser):
         aw = None
         self.charWidths = {}
         self.hmetrics = []
-        for glyph in xrange(numberOfHMetrics):
+        for glyph in range(numberOfHMetrics):
             # advance width and left side bearing.  lsb is actually signed
             # short, but we don't need it anyway (except for subsetting)
             aw, lsb = self.read_ushort(), self.read_ushort()
@@ -696,7 +705,7 @@ class TTFontFile(TTFontParser):
             if glyph in glyphToChar:
                 for char in glyphToChar[glyph]:
                     self.charWidths[char] = aw
-        for glyph in xrange(numberOfHMetrics, numGlyphs):
+        for glyph in range(numberOfHMetrics, numGlyphs):
             # the rest of the table only lists advance left side bearings.
             # so we reuse aw set by the last iteration of the previous loop
             lsb = self.read_ushort()
@@ -709,13 +718,13 @@ class TTFontFile(TTFontParser):
         self.seek_table('loca')
         self.glyphPos = []
         if indexToLocFormat == 0:
-            for n in xrange(numGlyphs + 1):
+            for n in range(numGlyphs + 1):
                 self.glyphPos.append(self.read_ushort() << 1)
         elif indexToLocFormat == 1:
-            for n in xrange(numGlyphs + 1):
+            for n in range(numGlyphs + 1):
                 self.glyphPos.append(self.read_ulong())
         else:
-            raise TTFError, 'Unknown location table format (%d)' % indexToLocFormat
+            raise TTFError('Unknown location table format (%d)' % indexToLocFormat)
 
     # Subsetting
 
@@ -789,7 +798,7 @@ class TTFontFile(TTFontParser):
                 pass
 
         # post - PostScript
-        post = "\x00\x03\x00\x00" + self.get_table('post')[4:16] + "\x00" * 16
+        post = b"\x00\x03\x00\x00" + self.get_table('post')[4:16] + b"\x00" * 16
         output.add('post', post)
 
         # hhea - Horizontal Header
@@ -811,13 +820,13 @@ class TTFontFile(TTFontParser):
                 6, length, 0,   # format, length, language
                 0,
                 entryCount] + \
-               map(codeToGlyph.get, subset)
+               [codeToGlyph.get(code) for code in subset]
         cmap = pack(*([">%dH" % len(cmap)] + cmap))
         output.add('cmap', cmap)
 
         # hmtx - Horizontal Metrics
         hmtx = []
-        for n in xrange(numGlyphs):
+        for n in range(numGlyphs):
             originalGlyphIdx = glyphMap[n]
             aw, lsb = self.hmetrics[originalGlyphIdx]
             if n < numberOfHMetrics:
@@ -831,7 +840,7 @@ class TTFontFile(TTFontParser):
         offsets = []
         glyf = []
         pos = 0
-        for n in xrange(numGlyphs):
+        for n in range(numGlyphs):
             offsets.append(pos)
             originalGlyphIdx = glyphMap[n]
             glyphPos = self.glyphPos[originalGlyphIdx]
@@ -861,10 +870,10 @@ class TTFontFile(TTFontParser):
             pos = pos + glyphLen
             if pos % 4 != 0:
                 padding = 4 - pos % 4
-                glyf.append('\0' * padding)
+                glyf.append(b'\0' * padding)
                 pos = pos + padding
         offsets.append(pos)
-        output.add('glyf', string.join(glyf, ""))
+        output.add('glyf', b"".join(glyf))
 
         # loca - Index to location
         loca = []
@@ -987,7 +996,7 @@ class TTFont:
                 # Let's add the first 128 unicodes to the 0th subset, so ' '
                 # always has code 32 (for word spacing to work) and the ASCII
                 # output is readable
-                subset0 = range(128)
+                subset0 = list(range(128))
                 self.subsets = [subset0]
                 for n in subset0:
                     self.assignments[n] = n
@@ -1016,8 +1025,8 @@ class TTFont:
 
     def _py_stringWidth(self, text, size, encoding='utf-8'):
         "Calculate text width"
-        if not isinstance(text,unicode):
-            text = unicode(text, encoding or 'utf-8')   # encoding defaults to utf-8
+        if not isUnicodeType(text):
+            text = text.decode(encoding or 'utf-8')   # encoding defaults to utf-8
         g = self.face.charWidths.get
         dw = self.face.defaultWidth
         return 0.001*size*sum([g(ord(u),dw) for u in text])
@@ -1046,8 +1055,8 @@ class TTFont:
         curSet = -1
         cur = []
         results = []
-        if not isinstance(text,unicode):
-            text = unicode(text, encoding or 'utf-8')   # encoding defaults to utf-8
+        if not isUnicodeType(text):
+            text = text.decode(encoding or 'utf-8')   # encoding defaults to utf-8
         assignments = state.assignments
         subsets = state.subsets
         for code in map(ord,text):
@@ -1055,7 +1064,7 @@ class TTFont:
                 n = assignments[code]
             else:
                 if state.frozen:
-                    raise pdfdoc.PDFError, "Font %s is already frozen, cannot add new character U+%04X" % (self.fontName, code)
+                    raise pdfdoc.PDFError("Font %s is already frozen, cannot add new character U+%04X" % (self.fontName, code))
                 n = state.nextCode
                 if n&0xFF==32:
                     # make code 32 always be a space character
@@ -1086,7 +1095,7 @@ class TTFont:
         try: state = self.state[doc]
         except KeyError: state = self.state[doc] = TTFont.State(self._asciiReadable)
         if subset < 0 or subset >= len(state.subsets):
-            raise IndexError, 'Subset %d does not exist in font %s' % (subset, self.fontName)
+            raise IndexError('Subset %d does not exist in font %s' % (subset, self.fontName))
         if state.internalName is None:
             state.internalName = state.namePrefix +repr(len(doc.fontMapping) + 1)
             doc.fontMapping[self.fontName] = '/' + state.internalName

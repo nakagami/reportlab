@@ -11,13 +11,13 @@ import math, types, sys, os
 from operator import getitem
 
 from reportlab.pdfbase.pdfmetrics import stringWidth # for font info
-from reportlab.lib.utils import fp_str
+from reportlab.lib.utils import fp_str, isSeqType
 from reportlab.lib.colors import black
 from reportlab.graphics.renderbase import StateTracker, getStateDelta, Renderer, renderScaledDrawing
 from reportlab.graphics.shapes import STATE_DEFAULTS, Path, UserNode
 from reportlab.graphics.shapes import * # (only for test0)
 from reportlab import rl_config
-from reportlab.lib.utils import getStringIO
+from reportlab.lib.utils import getBytesIO
 
 from xml.dom import getDOMImplementation
 
@@ -34,7 +34,7 @@ TEXT_STYLES = 'font-family font-size'
 ### top-level user function ###
 def drawToString(d, showBoundary=rl_config.showBoundary):
     "Returns a SVG as a string in memory, without touching the disk"
-    s = getStringIO()
+    s = getBytesIO()
     drawToFile(d, s, showBoundary=showBoundary)
     return s.getvalue()
 
@@ -253,9 +253,9 @@ class SVGCanvas:
     def setDash(self, array=[], phase=0):
         """Two notations. Pass two numbers, or an array and phase."""
 
-        if type(array) in (types.IntType, types.FloatType):
+        if type(array) in (int, float):
             self.style['stroke-dasharray'] = ', '.join(map(str, ([array, phase])))
-        elif type(array) in (types.ListType, types.TupleType) and len(array) > 0:
+        elif isSeqType(array) and len(array) > 0:
             assert phase >= 0, "phase is a length in user space"
             self.style['stroke-dasharray'] = ', '.join(map(str, (array+[phase])))
 
@@ -302,7 +302,7 @@ class SVGCanvas:
     def rect(self, x1,y1, x2,y2, rx=8, ry=8, link_info=None):
         "Draw a rectangle between x1,y1 and x2,y2."
 
-        if self.verbose: print "+++ SVGCanvas.rect"
+        if self.verbose: print("+++ SVGCanvas.rect")
 
         x = min(x1,x2)
         y = min(y1,y2)
@@ -332,7 +332,7 @@ class SVGCanvas:
         self.currGroup.appendChild(rect)
 
     def drawString(self, s, x, y, angle=0, link_info=None):
-        if self.verbose: print "+++ SVGCanvas.drawString"
+        if self.verbose: print("+++ SVGCanvas.drawString")
 
         if self._fillColor != None:
             self.setColor(self._fillColor)
@@ -353,7 +353,7 @@ class SVGCanvas:
             self.currGroup.appendChild(text)
 
     def drawCentredString(self, s, x, y, angle=0, text_anchor='middle', link_info=None):
-        if self.verbose: print "+++ SVGCanvas.drawCentredString"
+        if self.verbose: print("+++ SVGCanvas.drawCentredString")
 
         if self._fillColor != None:
             if not text_anchor in ['start', 'inherited']:
@@ -365,7 +365,7 @@ class SVGCanvas:
                 elif text_anchor=='numeric':
                     x -= numericXShift(text_anchor,s,textLen,self._font,self._fontSize)
                 else:
-                    raise ValueError, 'bad value for text_anchor ' + str(text_anchor)
+                    raise ValueError('bad value for text_anchor ' + str(text_anchor))
         self.drawString(x,y,text,angle=angle, link_info=link_info)
 
     def drawRightString(self, text, x, y, angle=0, link_info=None):
@@ -471,7 +471,7 @@ class SVGCanvas:
         if self._strokeColor != None:
             self.setColor(self._strokeColor)
             pairs = []
-            for i in xrange(len(points)):
+            for i in range(len(points)):
                 pairs.append("%f %f" % (points[i]))
             pts = ', '.join(pairs)
             polyline = transformNode(self.doc, "polygon",
@@ -500,7 +500,7 @@ class SVGCanvas:
         if self._strokeColor != None:
             self.setColor(self._strokeColor)
             pairs = []
-            for i in xrange(len(points)):
+            for i in range(len(points)):
                 pairs.append("%f %f" % (points[i]))
             pts = ', '.join(pairs)
             polyline = transformNode(self.doc, "polyline",
@@ -509,20 +509,20 @@ class SVGCanvas:
 
     ### groups ###
     def startGroup(self):
-        if self.verbose: print "+++ begin SVGCanvas.startGroup"
+        if self.verbose: print("+++ begin SVGCanvas.startGroup")
         currGroup, group = self.currGroup, transformNode(self.doc, "g", transform="")
         currGroup.appendChild(group)
         self.currGroup = group
-        if self.verbose: print "+++ end SVGCanvas.startGroup"
+        if self.verbose: print("+++ end SVGCanvas.startGroup")
         return currGroup
 
     def endGroup(self,currGroup):
-        if self.verbose: print "+++ begin SVGCanvas.endGroup"
+        if self.verbose: print("+++ begin SVGCanvas.endGroup")
         self.currGroup = currGroup
-        if self.verbose: print "+++ end SVGCanvas.endGroup"
+        if self.verbose: print("+++ end SVGCanvas.endGroup")
 
     def transform(self, a, b, c, d, e, f):
-        if self.verbose: print "!!! begin SVGCanvas.transform", a, b, c, d, e, f
+        if self.verbose: print("!!! begin SVGCanvas.transform", a, b, c, d, e, f)
         tr = self.currGroup.getAttribute("transform")
         t = 'matrix(%f, %f, %f, %f, %f, %f)' % (a,b,c,d,e,f)
         if (a, b, c, d, e, f) != (1, 0, 0, 1, 0, 0):
@@ -530,7 +530,7 @@ class SVGCanvas:
 
     def translate(self, x, y):
         # probably never used
-        print "!!! begin SVGCanvas.translate"
+        print("!!! begin SVGCanvas.translate")
         return
 
         tr = self.currGroup.getAttribute("transform")
@@ -539,7 +539,7 @@ class SVGCanvas:
 
     def scale(self, x, y):
         # probably never used
-        print "!!! begin SVGCanvas.scale"
+        print("!!! begin SVGCanvas.scale")
         return
 
         tr = self.groups[-1].getAttribute("transform")
@@ -577,7 +577,7 @@ class _SVGRenderer(Renderer):
         """This is the recursive method called for each node in the tree.
         """
 
-        if self.verbose: print "### begin _SVGRenderer.drawNode(%r)" % node
+        if self.verbose: print("### begin _SVGRenderer.drawNode(%r)" % node)
 
         self._canvas.comment('begin node %r'%node)
         color = self._canvas._color
@@ -605,7 +605,7 @@ class _SVGRenderer(Renderer):
                 setattr(self._canvas,self._restores[k],v)
         self._canvas.style = style
 
-        if self.verbose: print "### end _SVGRenderer.drawNode(%r)" % node
+        if self.verbose: print("### end _SVGRenderer.drawNode(%r)" % node)
 
     _restores = {'strokeColor':'_strokeColor','strokeWidth': '_lineWidth','strokeLineCap':'_lineCap',
                 'strokeLineJoin':'_lineJoin','fillColor':'_fillColor','fontName':'_font',
@@ -643,7 +643,7 @@ class _SVGRenderer(Renderer):
             return None
 
     def drawGroup(self, group):
-        if self.verbose: print "### begin _SVGRenderer.drawGroup"
+        if self.verbose: print("### begin _SVGRenderer.drawGroup")
 
         currGroup = self._canvas.startGroup()
         a, b, c, d, e, f = self._tracker.getState()['transform']
@@ -656,7 +656,7 @@ class _SVGRenderer(Renderer):
         self._canvas.transform(a, b, c, d, e, f)
         self._canvas.endGroup(currGroup)
 
-        if self.verbose: print "### end _SVGRenderer.drawGroup"
+        if self.verbose: print("### end _SVGRenderer.drawGroup")
 
     def drawRect(self, rect):
         link_info = self._get_link_info_dict(rect)
@@ -688,7 +688,7 @@ class _SVGRenderer(Renderer):
                 elif text_anchor=='numeric':
                     x -= numericXShift(text_anchor,text,textLen,font,fontSize)
                 else:
-                    raise ValueError, 'bad value for text_anchor ' + str(text_anchor)
+                    raise ValueError('bad value for text_anchor ' + str(text_anchor))
             self._canvas.drawString(text,x,y,link_info=self._get_link_info_dict(stringObj))
 
     def drawLine(self, line):

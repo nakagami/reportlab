@@ -35,7 +35,7 @@ def _processGlyph(G, truncate=1, pathReverse=0):
             if O[0]=='moveToClosed':
                 O = O[1:]
                 if pathReverse:
-                    for i in xrange(0,len(P),2):
+                    for i in range(0,len(P),2):
                         P[i+1], P[i] = P[i:i+2]
                     P.reverse()
                     O.reverse()

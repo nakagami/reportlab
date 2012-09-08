@@ -10,6 +10,9 @@
 # derived from an original version created
 # by Jeff Bauer of Rubicon Research and used
 # with his kind permission
+import string, re, time, datetime
+from reportlab.lib.utils import fp_str, isStrType
+
 __version__=''' $Id: normalDate.py 3677 2010-02-16 17:00:00Z rgbecker $ '''
 __doc__="Jeff Bauer's lightweight date class, extended by us.  Predates Python's datetime module."
 
@@ -23,7 +26,6 @@ _dayOfWeekName = ['Monday', 'Tuesday', 'Wednesday', 'Thursday',
 _monthName = ['January', 'February', 'March', 'April', 'May', 'June',
               'July','August','September','October','November','December']
 
-import string, re, time, datetime
 if hasattr(time,'struct_time'):
     _DateSeqTypes = (list,tuple,time.struct_time)
 else:
@@ -33,7 +35,7 @@ _fmtPat = re.compile('\\{(m{1,5}|yyyy|yy|d{1,4})\\}',re.MULTILINE|re.IGNORECASE)
 _iso_re = re.compile(r'(\d\d\d\d|\d\d)-(\d\d)-(\d\d)')
 
 def getStdMonthNames():
-    return map(string.lower,_monthName)
+    return [name.lower() for name in _monthName]
 
 def getStdShortMonthNames():
     return map(lambda x: x[:3],getStdMonthNames())
@@ -183,7 +185,7 @@ class NormalDate:
         else:
             daysByMonth = _daysInMonthNormal
         priorMonthDays = 0
-        for m in xrange(self.month() - 1):
+        for m in range(self.month() - 1):
             priorMonthDays = priorMonthDays + daysByMonth[m]
         return self.day() + priorMonthDays
 
@@ -390,14 +392,14 @@ class NormalDate:
         else:
             daysByMonth = _daysInMonthNormal
         dc = 0; month = 12
-        for m in xrange(len(daysByMonth)):
+        for m in range(len(daysByMonth)):
             dc = dc + daysByMonth[m]
             if dc >= days:
                 month = m + 1
                 break
         # add up the days in prior months
         priorMonthDays = 0
-        for m in xrange(month - 1):
+        for m in range(month - 1):
             priorMonthDays = priorMonthDays + daysByMonth[m]
         day = days - priorMonthDays
         self.setNormalDate((year, month, day))
@@ -427,10 +429,10 @@ class NormalDate:
         (year, month, day) = self.toTuple()
         days = firstDayOfYear(year) + day - 1
         if self.isLeapYear():
-            for m in xrange(month - 1):
+            for m in range(month - 1):
                 days = days + _daysInMonthLeapYear[m]
         else:
-            for m in xrange(month - 1):
+            for m in range(month - 1):
                 days = days + _daysInMonthNormal[m]
         if year == 1582:
             if month > 10 or (month == 10 and day > 4):
@@ -459,7 +461,7 @@ class NormalDate:
         (year, month, day, ...)"""
         if isinstance(normalDate,int):
             self.normalDate = normalDate
-        elif isinstance(normalDate,basestring):
+        elif isStrType(normalDate):
             try:
                 self.normalDate = int(normalDate)
             except:
@@ -599,20 +601,20 @@ class BusinessDate(NormalDate):
 
 if __name__ == '__main__':
     today = NormalDate()
-    print "NormalDate test:"
-    print "  Today (%s) is: %s %s" % (today, today.dayOfWeekAbbrev(), today.localeFormat())
+    print("NormalDate test:")
+    print("  Today (%s) is: %s %s" % (today, today.dayOfWeekAbbrev(), today.localeFormat()))
     yesterday = today - 1
-    print "  Yesterday was: %s %s" % (yesterday.dayOfWeekAbbrev(), yesterday.localeFormat())
+    print("  Yesterday was: %s %s" % (yesterday.dayOfWeekAbbrev(), yesterday.localeFormat()))
     tomorrow = today + 1
-    print "  Tomorrow will be: %s %s" % (tomorrow.dayOfWeekAbbrev(), tomorrow.localeFormat())
-    print "  Days between tomorrow and yesterday: %d" % (tomorrow - yesterday)
-    print today.formatMS('{d}/{m}/{yy}')
-    print today.formatMS('{dd}/{m}/{yy}')
-    print today.formatMS('{ddd} {d}/{m}/{yy}')
-    print today.formatMS('{dddd} {d}/{m}/{yy}')
-    print today.formatMS('{d}/{mm}/{yy}')
-    print today.formatMS('{d}/{mmm}/{yy}')
-    print today.formatMS('{d}/{mmmm}/{yy}')
-    print today.formatMS('{d}/{m}/{yyyy}')
+    print("  Tomorrow will be: %s %s" % (tomorrow.dayOfWeekAbbrev(), tomorrow.localeFormat()))
+    print("  Days between tomorrow and yesterday: %d" % (tomorrow - yesterday))
+    print(today.formatMS('{d}/{m}/{yy}'))
+    print(today.formatMS('{dd}/{m}/{yy}'))
+    print(today.formatMS('{ddd} {d}/{m}/{yy}'))
+    print(today.formatMS('{dddd} {d}/{m}/{yy}'))
+    print(today.formatMS('{d}/{mm}/{yy}'))
+    print(today.formatMS('{d}/{mmm}/{yy}'))
+    print(today.formatMS('{d}/{mmmm}/{yy}'))
+    print(today.formatMS('{d}/{m}/{yyyy}'))
     b = BusinessDate('20010116')
-    print 'b=',b,'b.scalar()', b.scalar()
+    print('b=',b,'b.scalar()', b.scalar())

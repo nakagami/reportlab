@@ -558,7 +558,7 @@ LIST_STYLE = TableStyle(
 
     lst.append(PageBreak())
     from reportlab.lib.testutils import testsFolder
-    I = Image(os.path.join(os.path.dirname(testsFolder),'tools','pythonpoint','demos','leftlogo.gif'))
+    I = Image(os.path.join(os.path.dirname(testsFolder),'src','tools','pythonpoint','demos','leftlogo.gif'))
     I.drawHeight = 1.25*inch*I.drawHeight / I.drawWidth
     I.drawWidth = 1.25*inch
     #I.drawWidth = 9.25*inch #uncomment to see better messaging
@@ -734,7 +734,7 @@ LIST_STYLE = TableStyle(
     sty = [ ('GRID',(0,0),(-1,-1),1,colors.green),
             ('BOX',(0,0),(-1,-1),2,colors.red),
            ]
-    data = [[str(i), Paragraph("xx "* (i%10), styleSheet["BodyText"]), Paragraph("blah "*(i%40), styleSheet["BodyText"])] for i in xrange(500)]
+    data = [[str(i), Paragraph("xx "* (i%10), styleSheet["BodyText"]), Paragraph("blah "*(i%40), styleSheet["BodyText"])] for i in range(500)]
     t=LongTable(data, style=sty, colWidths = [50,100,200])
     lst.append(t)
 
@@ -743,7 +743,7 @@ LIST_STYLE = TableStyle(
     lst.append(Paragraph('Yian Hong\'s Bug Case (should not blow up)', styleSheet['Heading2']))
     data = ([['Col1', 'Col2', 'Col3', 'Col4', 'Col5']]+
                 [['01', Paragraph('This is cell one that contains a paragraph.', styleSheet['Normal']), '02', '03', '04']
-                    for i in xrange(50)])
+                    for i in range(50)])
 
     t = Table(data, ['20%']*5, repeatRows=1)
     t.setStyle(TableStyle([

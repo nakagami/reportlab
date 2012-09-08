@@ -13,7 +13,6 @@ __version__=''' $Id: stdfonts.py 3269 2008-09-03 17:22:41Z rgbecker $ '''
 import sys
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfgen import canvas
-import string
 
 label_formats = {'dec':('%d=', 'Decimal'),
                  'oct':('%o=','Octal'),
@@ -62,7 +61,7 @@ def run(mode):
 
 if __name__ == '__main__':
     if len(sys.argv)==2:
-        mode = string.lower(sys.argv[1])
+        mode = sys.argv[1].lowere()
         if mode not in ['dec','oct','hex']:
             print __doc__
 

@@ -7,11 +7,12 @@ __version__=''' $Id: test_pdfgen_general.py 3791 2010-09-29 19:37:05Z andy $ '''
 from reportlab.lib.testutils import setOutDir,makeSuiteForClasses, outputfile, printLocation
 setOutDir(__name__)
 import os, string
+from io import BytesIO
 import unittest
 from reportlab.pdfgen import canvas   # gmcm 2000/10/13, pdfgen now a package
 from reportlab.lib.units import inch, cm
 from reportlab.lib import colors
-from reportlab.lib.utils import haveImages, fileName2Utf8
+from reportlab.lib.utils import haveImages
 
 #################################################################
 #
@@ -133,7 +134,7 @@ class DocBlock:
         self.namespace = {'canvas':canvas,'cm': cm,'inch':inch}
         canvas.translate(x+9, y - height + 9)
         codeObj = compile(self.code, '<sample>','exec')
-        exec codeObj in self.namespace
+        exec(codeObj, self.namespace)
 
         canvas.restoreState()
 
@@ -713,7 +714,7 @@ cost to performance.""")
     c.drawString(1*inch, 10.25*inch-2*14.4, "The second image is white alpha=0% to purple=100%")
 
 
-    for i in xrange(8):
+    for i in range(8):
         c.drawString(1*inch,8*inch+i*14.4,"mask=None   Line %d"%i)
         c.drawString(3*inch,8*inch+i*14.4,"mask='auto' Line %d"%i)
         c.drawString(1*inch,6*inch+i*14.4,"mask=None   Line %d"%i)
@@ -855,7 +856,7 @@ cost to performance.""")
                       color=colors.magenta)
     c.drawString(inch+3, 2*inch+6, 'Hyperlink with custom border style')
 
-    xpdf = fileName2Utf8(outputfile('test_hello.pdf').replace('\\','/'))
+    xpdf = outputfile('test_hello.pdf').replace('\\','/')
     link = 'Hard link to %s, with red border' % xpdf
     r1 = (inch, 1.5*inch, inch+2*3+c.stringWidth(link,c._fontname, c._fontsize), 1.75*inch) # this is x1,y1,x2,y2
     c.linkURL(xpdf, r1, thickness=1, color=colors.red, kind='GoToR')
@@ -896,7 +897,7 @@ def pageShapes(c):
     d = DocBlock()
     d.comment1 = 'Lesson one'
     d.code = "canvas.textOut('hello, world')"
-    print d.code
+    print(d.code)
 
     d.comment2 = 'Lesson two'
 
@@ -926,7 +927,7 @@ class PdfgenTestCase(unittest.TestCase):
         c.addPageLabel(102, prefix="Back",start=1)
 
         # Make some (mostly) empty pages
-        for i in xrange(113):
+        for i in range(113):
             c.drawString(100, 100, 'Tis is page '+str(i))
             c.showPage()
 
@@ -1016,8 +1017,7 @@ class PdfgenTestCase(unittest.TestCase):
         
 
 def trySomeColors(C,enforceColorSpace=None):
-    from StringIO import StringIO
-    out=StringIO()
+    out=BytesIO()
     canv = canvas.Canvas(out,enforceColorSpace=enforceColorSpace)
     canv.setFont('Helvetica',10)
     x = 0

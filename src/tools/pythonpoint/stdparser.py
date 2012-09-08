@@ -8,11 +8,10 @@ pythonpoint.py.
 """
 
 import string, imp, sys, os, copy
-from reportlab.lib.utils import isSeqType
+from reportlab.lib.utils import isSeqType, UniChr, isUnicodeType
 from reportlab.lib import xmllib
 from reportlab.lib import colors
 from reportlab.lib.enums import TA_LEFT, TA_RIGHT, TA_CENTER, TA_JUSTIFY
-from reportlab.lib.utils import recursiveImport
 from tools.pythonpoint import pythonpoint
 from reportlab.platypus import figures
 
@@ -27,14 +26,14 @@ def getModule(modulename,fromPath='tools.pythonpoint.styles'):
     """
 
     try:
-        exec 'from tools.pythonpoint import '+modulename
+        exec('from tools.pythonpoint import '+modulename)
         return eval(modulename)
     except ImportError:
         try:
-            exec 'from tools.pythonpoint.styles import '+modulename
+            exec('from tools.pythonpoint.styles import '+modulename)
             return eval(modulename)
         except ImportError:
-            exec 'import '+modulename
+            exec('import '+modulename)
             return eval(modulename)
 
 
@@ -246,6 +245,8 @@ class PPMLParser(xmllib.XMLParser):
         #the only data should be paragraph text, preformatted para
         #text, 'string text' for a fixed string on the page,
         #or table data
+        if not type(data) is str:
+            data = data.decode('utf-8')
         if self._curPara:
             self._curPara.rawtext = self._curPara.rawtext + data
         elif self._curPrefmt:
@@ -253,15 +254,23 @@ class PPMLParser(xmllib.XMLParser):
         elif self._curPyCode:
             self._curPyCode.rawtext = self._curPyCode.rawtext + data
         elif  self._curString:
+            if sys.version_info[0] == 3 and not isUnicodeType(data):
+                data = data.decode('utf-8')
             self._curString.text = self._curString.text + data
         elif self._curTable:
             self._curTable.rawBlocks.append(data)
         elif self._curTitle != None:  # need to allow empty strings,
             # hence explicitly testing for None
+            if sys.version_info[0] == 3 and not isUnicodeType(data):
+                data = data.decode('utf-8')
             self._curTitle = self._curTitle + data
         elif self._curAuthor != None:
+            if sys.version_info[0] == 3 and not isUnicodeType(data):
+                data = data.decode('utf-8')
             self._curAuthor = self._curAuthor + data
         elif self._curSubject != None:
+            if sys.version_info[0] == 3 and not isUnicodeType(data):
+                data = data.decode('utf-8')
             self._curSubject = self._curSubject + data
 
     def handle_cdata(self, data):
@@ -273,12 +282,18 @@ class PPMLParser(xmllib.XMLParser):
         elif self._curPyCode:
             self._curPyCode.rawtext = self._curPyCode.rawtext + data
         elif  self._curString:
+            if sys.version_info[0] == 3 and not isUnicodeType(data):
+                data = data.decode('utf-8')
             self._curString.text = self._curString.text + data
         elif self._curTable:
             self._curTable.rawBlocks.append(data)
         elif self._curAuthor != None:
+            if sys.version_info[0] == 3 and not isUnicodeType(data):
+                data = data.decode('utf-8')
             self._curAuthor = self._curAuthor + data
         elif self._curSubject != None:
+            if sys.version_info[0] == 3 and not isUnicodeType(data):
+                data = data.decode('utf-8')
             self._curSubject = self._curSubject + data
 
     def start_presentation(self, args):
@@ -728,23 +743,8 @@ class PPMLParser(xmllib.XMLParser):
         showBoundary = int(args.get("showBoundary", "0"))
         hAlign = args.get("hAlign", "CENTER")
 
-
-        # the path for the imports should include:
-        # 1. document directory
-        # 2. python path if baseDir not given, or
-        # 3. baseDir if given
-        try:
-            dirName = sdict["baseDir"]
-        except:
-            dirName = None
-        importPath = [os.getcwd()]
-        if dirName is None:
-            importPath.extend(sys.path)
-        else:
-            importPath.insert(0, dirName)
-
-        modul = recursiveImport(moduleName, baseDir=importPath)
-        func = getattr(modul, funcName)
+        __import__(moduleName)
+        func = getattr(sys.modules[moduleName], funcName)
         drawing = func()
 
         drawing.hAlign = hAlign
@@ -791,14 +791,14 @@ class PPMLParser(xmllib.XMLParser):
             echo = echo + '>'
             self._curPara.rawtext = self._curPara.rawtext + echo
         else:
-            print 'Unknown start tag %s' % tag
+            print('Unknown start tag %s' % tag)
 
 
     def unknown_endtag(self, tag):
         if  self._curPara:
             self._curPara.rawtext = self._curPara.rawtext + '</%s>'% tag
         else:
-            print 'Unknown end tag %s' % tag
+            print('Unknown end tag %s' % tag)
 
     def handle_charref(self, name):
         try:
@@ -809,4 +809,4 @@ class PPMLParser(xmllib.XMLParser):
         except ValueError:
             self.unknown_charref(name)
             return
-        self.handle_data(unichr(n).encode('utf8'))
+        self.handle_data(UniChr(n).encode('utf8'))

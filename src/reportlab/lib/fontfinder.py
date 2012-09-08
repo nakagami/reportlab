@@ -58,7 +58,8 @@ of non-Python applications.
 Future plans might include using this to auto-register fonts; and making it
 update itself smartly on repeated instantiation.
 """
-import sys, time, os, cPickle, tempfile
+import sys, time, os, tempfile
+import pickle
 from xml.sax.saxutils import quoteattr
 try:
     from hashlib import md5
@@ -206,12 +207,12 @@ class FontFinder:
 
     def save(self, fileName):
         f = open(fileName, 'w')
-        cPickle.dump(self, f)
+        pickle.dump(self, f)
         f.close()
 
     def load(self, fileName):
         f = open(fileName, 'r')
-        finder2 = cPickle.load(f)
+        finder2 = pickle.load(f)
         f.close()
         self.__dict__.update(finder2.__dict__)
 
@@ -225,10 +226,9 @@ class FontFinder:
             if rl_isfile(cfn):
                 try:
                     self.load(cfn)
-                    #print "loaded cached file with %d fonts (%s)" % (len(self._fonts), cfn)
                     return
                 except:
-                    pass  #pickle load failed.  Ho hum, maybe it's an old pickle.  Better rebuild it.
+                    pass
 
         from stat import ST_MTIME
         for dirName in self._dirs:
@@ -310,25 +310,25 @@ def test():
     ff.addDirectory(rlFontDir)
     ff.search()
 
-    print 'cache file name...'
-    print ff._getCacheFileName()
+    print('cache file name...')
+    print(ff._getCacheFileName())
 
-    print 'families...'
+    print('families...')
     for familyName in ff.getFamilyNames():
-        print '\t%s' % familyName
+        print('\t%s' % familyName)
 
-    print
-    print 'fonts called Vera:',
+    print()
+    print('fonts called Vera:',)
     for font in ff.getFontsInFamily('Bitstream Vera Sans'):
-        print '\t%s' % font.name
+        print('\t%s' % font.name)
 
-    print
-    print 'Bold fonts\n\t'
+    print()
+    print('Bold fonts\n\t')
     for font in ff.getFontsWithAttributes(isBold=True, isItalic=False):
-        print font.fullName ,
+        print(font.fullName)
 
-    print 'family report'
-    print ff.getFamilyXmlReport()
+    print('family report')
+    print(ff.getFamilyXmlReport())
 
 if __name__=='__main__':
     test()

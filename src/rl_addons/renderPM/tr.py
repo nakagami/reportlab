@@ -9,7 +9,7 @@ g.ctm = (1,0,0,1,0,0)
 
 N=20
 t0 = time()
-for i in xrange(N):
+for i in range(N):
 	for k in standardFonts:
 		f = getFont(k)
 		print k, f.face.findT1File()

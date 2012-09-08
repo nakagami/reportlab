@@ -298,7 +298,7 @@ def chomsky(times = 1):
     prevparts = []
     newparts = []
     output = []
-    for i in xrange(times):
+    for i in range(times):
         for partlist in (leadins, subjects, verbs, objects):
             while 1:
                 part = random.choice(partlist)
@@ -315,7 +315,7 @@ if rl_config.invariant:
     if not getattr(rl_config,'_random',None):
         rl_config._random = 1
         import random
-        random.seed(2342471922L)
+        random.seed(2342471922)
         del random
 del rl_config
 
@@ -346,4 +346,4 @@ def randomText(theme=STARTUP, sentences=5):
     return output
 
 if __name__=='__main__':
-    print chomsky(5)
+    print(chomsky(5))

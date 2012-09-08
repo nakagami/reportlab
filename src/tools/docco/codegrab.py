@@ -12,6 +12,7 @@ import types
 import string
 import os
 import sys
+from reportlab.lib.utils import isClassType, isFunctionType
 
 class Struct:
     pass
@@ -29,7 +30,7 @@ def getObjectsDefinedIn(modulename, directory=None):
 
     #might be a package.  If so, check the top level
     #package is there, then recalculate the path needed
-    words = string.split(modulename, '.')
+    words = modulename.split('.')
     if len(words) > 1:
         packagename = words[0]
         packagefound = imp.find_module(packagename, searchpath)
@@ -51,8 +52,7 @@ def getObjectsDefinedIn(modulename, directory=None):
     mod = imp.load_module(modulename, file, pathname, description)
 
     #grab the code too, minus trailing newlines
-    lines = open(pathname, 'r').readlines()
-    lines = map(string.rstrip, lines)
+    lines = [s.rstrip() for s in open(pathname, 'r').readlines()]
 
     result = Struct()
     result.functions = []
@@ -60,8 +60,8 @@ def getObjectsDefinedIn(modulename, directory=None):
     result.doc = mod.__doc__
     for name in dir(mod):
         value = getattr(mod, name)
-        if type(value) is types.FunctionType:
-            path, file = os.path.split(value.func_code.co_filename)
+        if isFunctionType(value):
+            path, file = os.path.split(value.__code__.co_filename)
             root, ext = os.path.splitext(file)
             #we're possibly interested in it
             if root == modulename:
@@ -83,7 +83,7 @@ def getObjectsDefinedIn(modulename, directory=None):
                     fn.status = 'official'
 
                 result.functions.append(fn)
-        elif type(value) == types.ClassType:
+        elif isClassType(value):
             if value.__module__ == modulename:
                 cl = Struct()
                 cl.name = name
@@ -107,21 +107,20 @@ def getObjectsDefinedIn(modulename, directory=None):
                 # Q - should we show all methods?
                 # loop over dict finding methods defined here
                 items = value.__dict__.items()
-                items.sort()
                 for (key2, value2) in items:
-                    if type(value2) != types.FunctionType:
+                    if not isFunctionType(value2):
                         continue # not a method
-                    elif os.path.splitext(value2.func_code.co_filename)[0] == modulename:
+                    elif os.path.splitext(value2.__code__.co_filename)[0] == modulename:
                         continue # defined in base class
                     else:
                         #we want it
                         meth = Struct()
                         meth.name = key2
-                        name2 = value2.func_code.co_name
+                        name2 = value2.__code__.co_name
                         meth.proto = getFunctionPrototype(value2, lines)
                         if name2!=key2:
                             meth.doc = 'pointer to '+name2
-                            meth.proto = string.replace(meth.proto,name2,key2)
+                            meth.proto = (meth.proto).replace(name2,key2)
                         else:
                             if value2.__doc__:
                                 meth.doc = dedent(value2.__doc__)
@@ -141,7 +140,7 @@ def getObjectsDefinedIn(modulename, directory=None):
 def getFunctionPrototype(f, lines):
     """Pass in the function object and list of lines;
     it extracts the header as a multiline text block."""
-    firstLineNo = f.func_code.co_firstlineno - 1
+    firstLineNo = f.__code__.co_firstlineno - 1
     lineNo = firstLineNo
     brackets = 0
     while 1:
@@ -157,16 +156,16 @@ def getFunctionPrototype(f, lines):
             lineNo = lineNo + 1
 
     usefulLines = lines[firstLineNo:lineNo+1]
-    return string.join(usefulLines, '\n')
+    return '\n'.join(usefulLines)
 
 
 def dedent(comment):
     """Attempts to dedent the lines to the edge. Looks at no.
     of leading spaces in line 2, and removes up to that number
     of blanks from other lines."""
-    commentLines = string.split(comment, '\n')
+    commentLines = comment.split('\n')
     if len(commentLines) < 2:
-        cleaned = map(string.lstrip, commentLines)
+        cleaned = [s.lstrip() for s in commentLines]
     else:
         spc = 0
         for char in commentLines[1]:
@@ -181,7 +180,7 @@ def dedent(comment):
                 if line[0] in string.whitespace:
                     line = line[1:]
             cleaned.append(line)
-    return string.join(cleaned, '\n')
+    return '\n'.join(cleaned)
 
 
 
@@ -189,38 +188,37 @@ def dumpDoc(modulename, directory=None):
     """Test support.  Just prints docco on the module
     to standard output."""
     docco = getObjectsDefinedIn(modulename, directory)
-    print 'codegrab.py - ReportLab Documentation Utility'
-    print 'documenting', modulename + '.py'
-    print '-------------------------------------------------------'
-    print
+    print('codegrab.py - ReportLab Documentation Utility')
+    print('documenting', modulename + '.py')
+    print('-------------------------------------------------------')
+    print()
     if docco.functions == []:
-        print 'No functions found'
+        print('No functions found')
     else:
-        print 'Functions:'
+        print('Functions:')
         for f in docco.functions:
-            print f.proto
-            print '    ' + f.doc
+            print(f.proto)
+            print('    ' + f.doc)
 
     if docco.classes == []:
-        print 'No classes found'
+        print('No classes found')
     else:
-        print 'Classes:'
+        print('Classes:')
         for c in docco.classes:
-            print c.name
-            print '    ' + c.doc
+            print(c.name)
+            print('    ' + c.doc)
             for m in c.methods:
-                print m.proto  # it is already indented in the file!
-                print '        ' + m.doc
-            print
+                print(m.proto)  # it is already indented in the file!
+                print('        ' + m.doc)
+            print()
 
 def test(m='reportlab.platypus.paragraph'):
     dumpDoc(m)
 
 if __name__=='__main__':
-    import sys
-    print 'Path to search:'
+    print ('Path to search:')
     for line in sys.path:
-        print '   ',line
+        print('   ',line)
     M = sys.argv[1:]
     if M==[]:
         M.append('reportlab.platypus.paragraph')

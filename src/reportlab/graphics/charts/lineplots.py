@@ -71,7 +71,7 @@ class ShadedPolyFiller(Filler,ShadedPolygon):
 class PolyFiller(Filler,Polygon):
     pass
 
-from linecharts import AbstractLineChart
+from reportlab.graphics.charts.linecharts import AbstractLineChart
 class LinePlot(AbstractLineChart):
     """Line plot with multiple lines.
 
@@ -497,7 +497,7 @@ class LinePlot3D(LinePlot):
                 if n:
                     frow = fpositions[rowNo]
                     x0, y0 = frow[0]
-                    for colNo in xrange(1,len(frow)):
+                    for colNo in range(1,len(frow)):
                         x1, y1 = frow[colNo]
                         _make_3d_line_info( F, x0, x1, y0, y1, z0, z1,
                                 theta_x, theta_y,
@@ -521,7 +521,7 @@ class LinePlot3D(LinePlot):
                     if symbol: F.add((1,z0,z0,x1,y1,symbol))
 
             # Draw data labels.
-            for colNo in xrange(n):
+            for colNo in range(n):
                 x1, y1 = row[colNo]
                 x1, y1 = _zadjust(x1,y1,z0)
                 L = self._innerDrawLabel(rowNo, colNo, x1, y1)
@@ -763,9 +763,9 @@ class AreaLinePlot(LinePlot):
             m = len(odata[0])
             S = n*[0]
             self.data = []
-            for i in xrange(1,m):
+            for i in range(1,m):
                 D = []
-                for j in xrange(n):
+                for j in range(n):
                     S[j] = S[j] + odata[j][i]
                     D.append((odata[j][0],S[j]))
                 self.data.append(D)

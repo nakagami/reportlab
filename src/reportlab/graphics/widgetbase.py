@@ -99,7 +99,7 @@ class PropHolder:
 
         childPropDicts = {}
         for (name, value) in propDict.items():
-            parts = string.split(name, '.', 1)
+            parts = name.split('.', 1)
             if len(parts) == 1:
                 #simple attribute, set it now
                 setattr(self, name, value)
@@ -127,7 +127,7 @@ class PropHolder:
         if prefix:
             prefix = prefix + '.'
         for (name, value) in propList:
-            print '%s%s = %s' % (prefix, name, value)
+            print('%s%s = %s' % (prefix, name, value))
 
 
 class Widget(PropHolder, shapes.UserNode):
@@ -142,11 +142,11 @@ class Widget(PropHolder, shapes.UserNode):
 
     def draw(self):
         msg = "draw() must be implemented for each Widget!"
-        raise shapes.NotImplementedError, msg
+        raise shapes.NotImplementedError(msg)
 
     def demo(self):
         msg = "demo() must be implemented for each Widget!"
-        raise shapes.NotImplementedError, msg
+        raise shapes.NotImplementedError(msg)
 
     def provideNode(self):
         return self.draw()
@@ -286,7 +286,7 @@ class TypedPropertyCollection(PropHolder):
 
     def setVector(self,**kw):
         for name, value in kw.items():
-            for i in xrange(len(value)):
+            for i in range(len(value)):
                 setattr(self[i],name,value[i])
 
     def __getattr__(self,name):
@@ -501,29 +501,29 @@ def test():
     wedges = TypedPropertyCollection(WedgeProperties)
     wedges.fillColor = colors.red
     wedges.setVector(fillColor=(colors.blue,colors.green,colors.white))
-    print len(_ItemWrapper)
+    print(len(_ItemWrapper))
 
     d = shapes.Drawing(400, 200)
     tc = TwoCircles()
     d.add(tc)
     import renderPDF
     renderPDF.drawToFile(d, 'sample_widget.pdf', 'A Sample Widget')
-    print 'saved sample_widget.pdf'
+    print('saved sample_widget.pdf')
 
     d = shapes.Drawing(400, 200)
     f = Face()
     f.skinColor = colors.yellow
     f.mood = "sad"
     d.add(f, name='theFace')
-    print 'drawing 1 properties:'
+    print('drawing 1 properties:')
     d.dumpProperties()
     renderPDF.drawToFile(d, 'face.pdf', 'A Sample Widget')
-    print 'saved face.pdf'
+    print('saved face.pdf')
 
     d2 = d.expandUserNodes()
     renderPDF.drawToFile(d2, 'face_copy.pdf', 'An expanded drawing')
-    print 'saved face_copy.pdf'
-    print 'drawing 2 properties:'
+    print('saved face_copy.pdf')
+    print('drawing 2 properties:')
     d2.dumpProperties()
 
 

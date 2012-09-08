@@ -8,7 +8,6 @@ setOutDir(__name__)
 from reportlab.lib.testutils import RL_HOME,testsFolder
 __version__=''' $Id: test_source_chars.py 3660 2010-02-08 18:17:33Z damian $ '''
 import os, sys, glob, string, re
-from types import ModuleType, ClassType, MethodType, FunctionType
 import reportlab
 import unittest
 from reportlab.lib.utils import open_and_read
@@ -26,7 +25,7 @@ class SourceTester(SecureTestCase):
 
     def checkFileForTabs(self, filename):
         txt = open_and_read(filename, 'r')
-        chunks = string.split(txt, '\t')
+        chunks = txt.split('\t')
         tabCount = len(chunks) - 1
         if tabCount:
             #raise Exception, "File %s contains %d tab characters!" % (filename, tabCount)
@@ -37,8 +36,8 @@ class SourceTester(SecureTestCase):
         initSize = len(txt)
         badLines = 0
         badChars = 0
-        for line in string.split(txt, '\n'):
-            stripped = string.rstrip(line)
+        for line in txt.split('\n'):
+            stripped = line.rstrip()
             spaces = len(line) - len(stripped)  # OK, so they might be trailing tabs, who cares?
             if spaces:
                 badLines = badLines + 1
@@ -57,10 +56,10 @@ def zapTrailingWhitespace(dirname):
     """Eliminates trailing spaces IN PLACE.  Use with extreme care
     and only after a backup or with version-controlled code."""
     assert os.path.isdir(dirname), "Directory not found!"
-    print "This will eliminate all trailing spaces in py files under %s." % dirname
+    print("This will eliminate all trailing spaces in py files under %s." % dirname)
     ok = raw_input("Shall I proceed?  type YES > ")
     if ok != 'YES':
-        print 'aborted by user'
+        print('aborted by user')
         return
     w = GlobDirectoryWalker(dirname, '*.py')
     for filename in w:
@@ -77,8 +76,8 @@ def zapTrailingWhitespace(dirname):
 
         if badChars != 0:
             open(filename, 'w').write(string.join(cleaned, '\n'))
-            print "file %s contained %d trailing spaces, FIXED" % (filename, badChars)
-    print 'done'
+            print("file %s contained %d trailing spaces, FIXED" % (filename, badChars))
+    print('done')
 
 def makeSuite():
     return makeSuiteForClasses(SourceTester)

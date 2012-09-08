@@ -2,6 +2,7 @@
 #see license.txt for license details
 #history http://www.reportlab.co.uk/cgi-bin/viewcvs.cgi/public/reportlab/trunk/reportlab/tools/docco/examples.py
 import string
+from reportlab.lib.utils import isStrType
 
 testannotations="""
 def annotations(canvas):
@@ -19,7 +20,7 @@ def annotations(canvas):
 
 test1 = """
 def f(a,b):
-    print "it worked", a, b
+    print("it worked", a, b)
     return a+b
 """
 
@@ -427,7 +428,7 @@ bought up the rights now
 and she'll have fun fun fun
 til her Daddy takes the keyboard away'''
 
-lyrics = string.split(lyrics, "\n")
+lyrics = lyrics.split("\n")
 testtextsize = """
 def textsize(canvas):
     from reportlab.lib.units import inch
@@ -854,13 +855,9 @@ def doctemplateillustration(canvas):
 # D = dir()
 g = globals()
 Dprime = {}
-from types import StringType
-from string import strip
-for (a,b) in g.items():
-    if a[:4]=="test" and type(b) is StringType:
-        #print 'for', a
-        #print b
-        b = strip(b)
+for (a,b) in list(g.items()):
+    if a[:4]=="test" and isStrType(b):
+        b = b.strip()
         exec(b+'\n')
 
 platypussetup = """

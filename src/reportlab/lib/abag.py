@@ -32,5 +32,5 @@ class ABag:
 if __name__=="__main__":
     AB = ABag(a=1, c="hello")
     CD = AB.clone()
-    print AB
-    print CD
+    print(AB)
+    print(CD)

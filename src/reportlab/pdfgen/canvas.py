@@ -12,21 +12,17 @@ ENABLE_TRACKING = 1 # turn this off to do profile testing w/o tracking
 import os
 import sys
 import re
-from string import join, split, strip, atoi, replace, upper, digits
+import hashlib
+from string import digits
 import tempfile
 from math import sin, cos, tan, pi, ceil
-try:
-    from hashlib import md5
-except ImportError:
-    from md5 import md5
-
 from reportlab import rl_config
 from reportlab.pdfbase import pdfutils
 from reportlab.pdfbase import pdfdoc
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfgen  import pdfgeom, pathobject, textobject
 from reportlab.lib.colors import black, _chooseEnforceColorSpace
-from reportlab.lib.utils import import_zlib, ImageReader, fp_str, _digester
+from reportlab.lib.utils import import_zlib, ImageReader, fp_str, isSeqType, isStrType, isUnicodeType
 from reportlab.lib.boxstuff import aspectRatioFix
 
 digitPat = re.compile('\d')  #used in decimal alignment
@@ -107,7 +103,7 @@ class   ExtGState:
 
     def getState(self):
         S = {}
-        for t,name in self._c.iteritems():
+        for t,name in self._c.items():
             S[name] = pdfdoc.PDFDictionary(dict((t,)))
         return S and pdfdoc.PDFDictionary(S) or None
 
@@ -252,8 +248,8 @@ class Canvas(textobject._PDFColorSetter):
         '''
         if encrypt:
             from reportlab.lib import pdfencrypt
-            if isinstance(encrypt, basestring): #encrypt is the password itself
-                if isinstance(encrypt, unicode):
+            if isStrType(encrypt): #encrypt is the password itself
+                if isUnicodeType(encrypt):
                     encrypt = encrypt.encode('utf-8')
                 encrypt = pdfencrypt.StandardEncryption(encrypt)    #now it's the encrypt object
                 encrypt.setAllPermissions(1)
@@ -311,11 +307,11 @@ class Canvas(textobject._PDFColorSetter):
         d = self.__dict__
         d.update(state)
 
-    STATE_ATTRIBUTES = split("""
+    STATE_ATTRIBUTES = """
      _x _y _fontname _fontsize _textMode _leading _currentMatrix _fillMode
      _fillMode _charSpace _wordSpace _horizScale _textRenderMode _rise _textLineMatrix
      _textMatrix _lineCap _lineJoin _lineDash _lineWidth _mitreLimit _fillColorObj
-     _strokeColorObj _extgstate""")
+     _strokeColorObj _extgstate""".split()
     STATE_RANGE = range(len(STATE_ATTRIBUTES))
 
         #self._addStandardFonts()
@@ -843,10 +839,13 @@ class Canvas(textobject._PDFColorSetter):
                 mdata = smask.getRGBData()
             else:
                 mdata = str(mask)
-            name = _digester(rawdata+mdata)
+            name = hashlib.md5(rawdata+mdata).hexdigest()
         else:
             #filename, use it
-            name = _digester('%s%s' % (image, mask))
+            s = '%s%s' % (image, mask)
+            if isUnicodeType(s):
+                s = s.encode('utf-8')
+            name = hashlib.md5(s).hexdigest()
 
         # in the pdf document, this will be prefixed with something to
         # say it is an XObject.  Does it exist yet?
@@ -973,7 +972,10 @@ class Canvas(textobject._PDFColorSetter):
         will error in Distiller but work on printers supporting it.
         """
         #check if we've done this one already...
-        rawName = 'PS' + md5(command).hexdigest()
+        if isUnicodeType(command):
+            rawName = 'PS' + hashlib.md5(command.encode('utf-8')).hexdigest()
+        else:
+            rawName = 'PS' + hashlib.md5(command).hexdigest()
         regName = self._doc.getXObjectName(rawName)
         psObj = self._doc.idToObject.get(regName, None)
         if not psObj:
@@ -1127,7 +1129,10 @@ class Canvas(textobject._PDFColorSetter):
         If there is current data a ShowPage is executed automatically.
         After this operation the canvas must not be used further."""
         if len(self._code): self.showPage()
-        return self._doc.GetPDFData(self)
+        s = self._doc.GetPDFData(self)
+        if isUnicodeType(s):
+            s = s.encode('utf-8')
+        return s
 
     def setPageSize(self, size):
         """accepts a 2-tuple in points for paper size for this
@@ -1183,7 +1188,7 @@ class Canvas(textobject._PDFColorSetter):
                                    a0*c+c0*d,    b0*c+d0*d,
                                    a0*e+c0*f+e0, b0*e+d0*f+f0)
         if self._code and self._code[-1][-3:]==' cm':
-            L = split(self._code[-1])
+            L = self._code[-1].split()
             a0, b0, c0, d0, e0, f0 = map(float,L[-7:-1])
             s = len(L)>7 and join(L)+ ' %s cm' or '%s cm'
             self._code[-1] = s % fp_str(a0*a+c0*b,b0*a+d0*b,a0*c+c0*d,b0*c+d0*d,a0*e+c0*f+e0,b0*e+d0*f+f0)
@@ -1193,7 +1198,7 @@ class Canvas(textobject._PDFColorSetter):
     def absolutePosition(self, x, y):
         """return the absolute position of x,y in user space w.r.t. default user space"""
         if not ENABLE_TRACKING:
-            raise ValueError, "tracking not enabled! (canvas.ENABLE_TRACKING=0)"
+            raise ValueError("tracking not enabled! (canvas.ENABLE_TRACKING=0)")
         (a,b,c,d,e,f) = self._currentMatrix
         xp = a*x + c*y + e
         yp = b*x + d*y + f
@@ -1589,9 +1594,9 @@ class Canvas(textobject._PDFColorSetter):
         """Two notations.  pass two numbers, or an array and phase"""
         if isinstance(array,(int,float)):
             self._code.append('[%s %s] 0 d' % (array, phase))
-        elif isinstance(array,(tuple,list)):
+        elif isSeqType(array):
             assert phase >= 0, "phase is a length in user space"
-            textarray = ' '.join(map(str, array))
+            textarray = ' '.join([str(s) for s in array])
             self._code.append('[%s] %s d' % (textarray, phase))
 
     # path stuff - the separate path object builds it
@@ -1768,4 +1773,4 @@ if _instanceEscapePDF:
     Canvas._escape = new.instancemethod(_instanceEscapePDF,None,Canvas)
 
 if __name__ == '__main__':
-    print 'For test scripts, look in tests'
+    print('For test scripts, look in tests')

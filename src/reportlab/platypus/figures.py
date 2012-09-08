@@ -9,7 +9,6 @@ import os
 from reportlab.lib import colors
 from reportlab.pdfgen.canvas import Canvas
 from reportlab.lib.styles import ParagraphStyle
-from reportlab.lib.utils import recursiveImport
 from reportlab.platypus import Frame
 from reportlab.platypus import Flowable
 from reportlab.platypus import Paragraph
@@ -232,9 +231,9 @@ class ImageFigure(FlexFigure):
 
 class DrawingFigure(FlexFigure):
     """Drawing with a caption below it.  Clunky, scaling fails."""
-    def __init__(self, modulename, classname, caption, baseDir=None, background=None):
-        module = recursiveImport(modulename, baseDir)
-        klass = getattr(module, classname)
+    def __init__(self, modulename, classname, caption, background=None):
+        __import__(modulename)
+        klass = getattr(sys.modules[modulename], classname)
         self.drawing = klass()
         FlexFigure.__init__(self,
                             self.drawing.width,

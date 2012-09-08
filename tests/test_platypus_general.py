@@ -22,7 +22,7 @@ from reportlab.lib.units import inch, cm
 from reportlab.lib.styles import PropertySet, getSampleStyleSheet, ParagraphStyle
 from reportlab.lib import colors
 from reportlab.rl_config import defaultPageSize
-from reportlab.lib.utils import haveImages, _RL_DIR, rl_isfile, open_for_read, fileName2Utf8
+from reportlab.lib.utils import haveImages, _RL_DIR, rl_isfile, open_for_read
 import unittest
 from reportlab.lib.testutils import testsFolder
 if haveImages:
@@ -30,7 +30,6 @@ if haveImages:
     if not rl_isfile(_GIF): _GIF = None
 else:
     _GIF = None
-if _GIF: _GIFUTF8=fileName2Utf8(_GIF)
 
 _JPG = os.path.join(testsFolder,'..','docs','images','lj8100.jpg')
 if not rl_isfile(_JPG): _JPG = None
@@ -71,20 +70,20 @@ def getParagraphs(textBlock):
     """Within the script, it is useful to whack out a page in triple
     quotes containing separate paragraphs. This breaks one into its
     constituent paragraphs, using blank lines as the delimiter."""
-    lines = string.split(textBlock, '\n')
+    lines = textBlock.split('\n')
     paras = []
     currentPara = []
     for line in lines:
-        if len(string.strip(line)) == 0:
+        if len(line.strip()) == 0:
             #blank, add it
             if currentPara != []:
-                paras.append(string.join(currentPara, '\n'))
+                paras.append('\n'.join(currentPara))
                 currentPara = []
         else:
             currentPara.append(line)
     #...and the last one
     if currentPara != []:
-        paras.append(string.join(currentPara, '\n'))
+        paras.append(currentPara.join('\n'))
 
     return paras
 
@@ -312,11 +311,10 @@ def getCommentary():
     story.append(FrameBreak())
     if _GIF:
         story.append(Paragraph("""We can use images via the file name""", styleSheet['BodyText']))
-        code('''    story.append(platypus.Image('%s'))'''%_GIFUTF8)
-        code('''    story.append(platypus.Image(fileName2Utf8('%s')))''' % _GIFUTF8)
+        code('''    story.append(platypus.Image('%s'))'''%_GIF)
         story.append(Paragraph("""They can also be used with a file URI or from an open python file!""", styleSheet['BodyText']))
-        code('''    story.append(platypus.Image('%s'))'''% getFurl(_GIFUTF8))
-        code('''    story.append(platypus.Image(open_for_read('%s','b')))''' % _GIFUTF8)
+        code('''    story.append(platypus.Image('%s'))'''% getFurl(_GIF))
+        code('''    story.append(platypus.Image(open_for_read('%s','b')))''' % _GIF)
         story.append(FrameBreak())
         story.append(Paragraph("""Images can even be obtained from the internet.""", styleSheet['BodyText']))
         code('''    img = platypus.Image('http://www.reportlab.com/rsrc/encryption.gif')
@@ -496,7 +494,6 @@ def getExamples():
         story.append(Paragraph("Here is an Image flowable obtained from a string filename.",styleSheet['Italic']))
         story.append(platypus.Image(_GIF))
         story.append(Paragraph( "Here is an Image flowable obtained from a utf8 filename.", styleSheet['Italic']))
-        #story.append(platypus.Image(fileName2Utf8(_GIF)))
         story.append(Paragraph("Here is an Image flowable obtained from a string file url.",styleSheet['Italic']))
         story.append(platypus.Image(getFurl(_GIF)))
         story.append(Paragraph("Here is an Image flowable obtained from an open file.",styleSheet['Italic']))
@@ -537,8 +534,8 @@ class AndyTemplate(BaseDocTemplate):
             self.handle_flowable(flowables)
 
     def build(self, flowables1, flowables2):
-        assert filter(lambda x: not isinstance(x,Flowable), flowables1)==[], "flowables1 argument error"
-        assert filter(lambda x: not isinstance(x,Flowable), flowables2)==[], "flowables2 argument error"
+        assert [x for x in flowables1 if not isinstance(x, Flowable)]==[], "flowables1 argument error"
+        assert [x for x in flowables2 if not isinstance(x, Flowable)]==[], "flowables2 argument error"
         self._startBuild()
         while (len(flowables1) > 0 or len(flowables1) > 0):
             self.clean_hanging()
@@ -548,7 +545,7 @@ class AndyTemplate(BaseDocTemplate):
         self._endBuild()
 
 def showProgress(pageNo):
-    print 'CALLBACK SAYS: page %d' % pageNo
+    print('CALLBACK SAYS: page %d' % pageNo)
 
 
 def run():

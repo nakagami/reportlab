@@ -97,7 +97,10 @@ Why would you want to use such a beast ?
     - For fun because you can do it !
 """
 
-import cStringIO
+try:
+    from cStringIO import StringIO
+except ImportError:
+    from io import StringIO
 from reportlab.pdfgen import canvas
 from reportlab.pdfgen import pathobject
 from reportlab.pdfgen import textobject
@@ -274,7 +277,7 @@ class Canvas :
         self._footerpresent = 0
         self._object = canvas.Canvas(*args,**kwargs)
         self._enforceColorSpace = self._object._enforceColorSpace
-        self._pyfile = cStringIO.StringIO()
+        self._pyfile = StringIO()
         self._PyWrite(PyHeader)
         try :
             del kwargs["filename"]
@@ -307,4 +310,4 @@ class Canvas :
         self._pyfile.write("%s\n" % pycode)
 
 if __name__ == '__main__':
-    print 'For test scripts, look in tests'
+    print('For test scripts, look in tests')

@@ -28,15 +28,12 @@ def _transMax(n,A):
         for i,x in enumerate(a):
             X[i] = max(X[i],x)
     X = [0] + X[:m]
-    for i in xrange(m):
+    for i in range(m):
         X[i+1] += X[i]
     return X
 
 def _objStr(s):
-    if isinstance(s,basestring):
-        return s
-    else:
-        return str(s)
+    return str(s)
 
 def _getStr(s):
     if isSeqType(s):
@@ -239,7 +236,7 @@ class Legend(Widget):
             texts = [_getStr(p[1]) for p in colorNamePairs]
         else:
             chart = getattr(colorNamePairs,'chart',getattr(colorNamePairs,'obj',None))
-            texts = [chart.getSeriesName(i,'series %d' % i) for i in xrange(chart._seriesCount)]
+            texts = [chart.getSeriesName(i,'series %d' % i) for i in range(chart._seriesCount)]
         return texts
 
     def _calculateMaxBoundaries(self, colorNamePairs):
@@ -254,7 +251,7 @@ class Legend(Widget):
         n = max([len(m) for m in M])
         if self.variColumn:
             columnMaximum = self.columnMaximum
-            return [_transMax(n,M[r:r+columnMaximum]) for r in xrange(0,len(M),self.columnMaximum)]
+            return [_transMax(n,M[r:r+columnMaximum]) for r in range(0,len(M),self.columnMaximum)]
         else:
             return _transMax(n,M)
 
@@ -371,7 +368,7 @@ class Legend(Widget):
             dividerOffsX = self.dividerOffsX
             dividerOffsY = self.dividerOffsY
 
-        for i in xrange(n):
+        for i in range(n):
             if autoCP:
                 col = autoCP
                 col.index = i
@@ -400,7 +397,7 @@ class Legend(Widget):
                 x = thisx+dx+dxTextSpace
                 xn = thisx
             else:
-                raise ValueError, "bad alignment"
+                raise ValueError("bad alignment")
             if not isSeqType(name):
                 T = [T]
             yd = y

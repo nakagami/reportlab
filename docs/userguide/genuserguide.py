@@ -6,9 +6,10 @@ __version__=''' $Id: genuserguide.py 3376 2009-01-19 12:05:41Z jonas $ '''
 __doc__ = """
 This module contains the script for building the user guide.
 """
+import sys
+import os
 
 def run(pagesize=None, verbose=0, outDir=None):
-    import sys,os
     from reportlab.lib.utils import open_and_read
     cwd = os.getcwd()
     docsDir=os.path.dirname(os.path.dirname(sys.argv[0]) or cwd)
@@ -26,7 +27,7 @@ def run(pagesize=None, verbose=0, outDir=None):
     registerFontFamily('Vera',normal='Vera',bold='VeraBd',italic='VeraIt',boldItalic='VeraBI')
     from tools.docco.rl_doc_utils import setStory, getStory, RLDocTemplate, defaultPageSize, H1, H2, H3, H4
     from tools.docco import rl_doc_utils
-    exec 'from tools.docco.rl_doc_utils import *' in G, G
+    exec('from tools.docco.rl_doc_utils import *', G, G)
     destfn = os.path.join(outDir,'reportlab-userguide.pdf')
     doc = RLDocTemplate(destfn,pagesize = pagesize or defaultPageSize)
 
@@ -50,13 +51,13 @@ def run(pagesize=None, verbose=0, outDir=None):
         'graph_widgets',
         'app_demos',
         ):
-        exec open_and_read(f+'.py',mode='t') in G, G
+        exec(open_and_read(f+'.py',mode='t'), G, G)
     del G
 
     story = getStory()
-    if verbose: print 'Built story contains %d flowables...' % len(story)
+    if verbose: print('Built story contains %d flowables...' % len(story))
     doc.multiBuild(story)
-    if verbose: print 'Saved "%s"' % destfn
+    if verbose: print('Saved "%s"' % destfn)
 
 def makeSuite():
     "standard test harness support - run self as separate process"
@@ -64,14 +65,13 @@ def makeSuite():
     return ScriptThatMakesFileTest('../docs/userguide', 'genuserguide.py', 'reportlab-userguide.pdf')
 
 def main():
-    import sys
-    outDir = filter(lambda x: x[:9]=='--outdir=',sys.argv)
+    outDir = None
+    for arg in sys.argv:
+        if arg[:9] == '--outdir=':
+            outDirDir = arg
     if outDir:
-        outDir = outDir[0]
         sys.argv.remove(outDir)
         outDir = outDir[9:]
-    else:
-        outDir = None
     verbose = '-s' not in sys.argv
     if not verbose: sys.argv.remove('-s')
     timing = '-timing' in sys.argv
@@ -83,10 +83,10 @@ def main():
         try:
             pagesize = (w,h) = eval(sys.argv[1])
         except:
-            print 'Expected page size in argument 1', sys.argv[1]
+            print('Expected page size in argument 1', sys.argv[1])
             raise
         if verbose:
-            print 'set page size to',sys.argv[1]
+            print('set page size to',sys.argv[1])
     else:
         pagesize = None
     if timing:
@@ -94,7 +94,7 @@ def main():
         t0 = time()
         run(pagesize, verbose,outDir)
         if verbose:
-            print 'Generation of userguide took %.2f seconds' % (time()-t0)
+            print('Generation of userguide took %.2f seconds' % (time()-t0))
     elif prof:
         import profile
         profile.run('run(pagesize,verbose,outDir)','genuserguide.stats')

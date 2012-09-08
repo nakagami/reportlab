@@ -30,7 +30,7 @@ from reportlab.graphics.shapes import Group, Drawing, Line, Rect, Polygon, PolyL
 from reportlab.graphics.widgetbase import Widget, TypedPropertyCollection, PropHolder
 from reportlab.graphics.charts.areas import PlotArea
 from reportlab.graphics.charts.legends import _objStr
-from piecharts import WedgeLabel
+from reportlab.graphics.charts.piecharts import WedgeLabel
 from reportlab.graphics.widgets.markers import makeMarker, uSymbol2Symbol, isSymbol
 
 class StrandProperty(PropHolder):
@@ -259,7 +259,7 @@ class SpiderChart(PlotArea):
         angleBetween = direction*(2 * pi)/float(n)
         spokes = self.spokes
         spokeLabels = self.spokeLabels
-        for i in xrange(n):
+        for i in range(n):
             car = cos(angle)*radius
             sar = sin(angle)*radius
             csa.append((car,sar,angle))
@@ -286,7 +286,7 @@ class SpiderChart(PlotArea):
             r = row[-1]
             points.append(cx+car*r)
             points.append(cy+sar*r)
-            for i in xrange(n):
+            for i in range(n):
                 car, sar, angle = csa[i]
                 r = row[i]
                 points.append(cx+car*r)

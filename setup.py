@@ -415,7 +415,7 @@ def main():
 
     #copy some special case files into place so package_data will treat them properly
     PACKAGE_DIR = {'reportlab': pjoin('src','reportlab')}
-    for fn,dst in SPECIAL_PACKAGE_DATA.iteritems():
+    for fn,dst in SPECIAL_PACKAGE_DATA.items():
         shutil.copyfile(fn,pjoin(PACKAGE_DIR['reportlab'],dst))
         reportlab_files.append(dst)
     get_fonts(PACKAGE_DIR, reportlab_files)

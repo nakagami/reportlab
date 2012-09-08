@@ -1,5 +1,6 @@
 from reportlab.lib.testutils import setOutDir,makeSuiteForClasses, outputfile, printLocation, NearTestCase
 setOutDir(__name__)
+import sys
 import unittest
 from reportlab.pdfgen.canvas import Canvas
 from reportlab.pdfbase import pdfmetrics
@@ -13,8 +14,8 @@ import codecs
 textPat = re.compile(r'\([^(]*\)')
 
 #test sentences
-testCp1252 = 'copyright %s trademark %s registered %s ReportLab! Ol%s!' % (chr(169), chr(153),chr(174), chr(0xe9))
-testUni = unicode(testCp1252, 'cp1252')
+testCp1252 = b'copyright \xa9 trademark \x99 registered \xae ReportLab! Ol\xe9!'
+testUni = testCp1252.decode('cp1252')
 testUTF8 = testUni.encode('utf-8')
 # expected result is octal-escaped text in the PDF
 expectedCp1252 = pdfutils._escape(testCp1252)
@@ -26,9 +27,7 @@ def extractText(pdfOps):
     i.e. text is in curved brackets. Crude and dirty, probably fails
     on escaped brackets.
     """
-    found = textPat.findall(pdfOps)
-    #chop off '(' and ')'
-    return map(lambda x:x[1:-1], found)
+    return [x[1:-1] for x in textPat.findall(pdfOps)]
 
 def subsetToUnicode(ttf, subsetCodeStr):
     """Return unicode string represented by given subsetCode string

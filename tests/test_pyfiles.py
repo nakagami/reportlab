@@ -7,59 +7,7 @@ from reportlab.lib.testutils import setOutDir,makeSuiteForClasses, SecureTestCas
 setOutDir(__name__)
 import os, sys, string, fnmatch, re
 import unittest
-from reportlab.lib.utils import open_and_read, open_and_readlines
-
-# Helper function and class.
-def unique(seq):
-    "Remove elements from a list that occur more than once."
-
-    # Return input if it has less than 2 elements.
-    if len(seq) < 2:
-        return seq
-
-    # Make a sorted copy of the input sequence.
-    cnvt = isinstance(seq,basestring)
-    seq2 = seq[:]
-    if cnvt: seq2 = list(seq2)
-    seq2.sort()
-
-    # Remove adjacent elements if they are identical.
-    i = 0
-    while i < len(seq2)-1:
-        elem = seq2[i]
-        try:
-            while elem == seq2[i+1]:
-                del seq2[i+1]
-        except IndexError:
-            pass
-        i += 1
-
-    # Try to return something of the same type as the input.
-    if cnvt:
-        return seq[0:0].join(seq2)
-    else:
-        return seq2
-
-class SelfTestCase(unittest.TestCase):
-    "Test unique() function."
-
-    def testUnique(self):
-        "Test unique() function."
-
-        cases = [([], []),
-                 ([0], [0]),
-                 ([0, 1, 2], [0, 1, 2]),
-                 ([2, 1, 0], [0, 1, 2]),
-                 ([0, 0, 1, 1, 2, 2, 3, 3], [0, 1, 2, 3]),
-                 ('abcabcabc', 'abc')
-                 ]
-
-        msg = "Failed: unique(%s) returns %s instead of %s."
-        for sequence, expectedOutput in cases:
-            output = unique(sequence)
-            args = (sequence, output, expectedOutput)
-            assert output == expectedOutput, msg % args
-
+from reportlab.lib.utils import open_and_read, open_and_readlines, isStrType
 
 class AsciiFileTestCase(unittest.TestCase):
     "Test if Python files are pure ASCII ones."
@@ -71,15 +19,12 @@ class AsciiFileTestCase(unittest.TestCase):
 
         for path in allPyFiles:
             fileContent = open_and_read(path,'r')
-            nonAscii = filter(lambda c: ord(c)>127, fileContent)
-            nonAscii = unique(nonAscii)
+            nonAscii = u''.join(list(set([c for c in fileContent if ord(c)>127])))
 
-            truncPath = path[string.find(path, 'reportlab'):]
+            truncPath = path[path.find('reportlab'):]
             args = (truncPath, repr(map(ord, nonAscii)))
             msg = "File %s contains characters: %s." % args
-##            if nonAscii:
-##                print msg
-            assert nonAscii == '', msg
+            assert len(nonAscii) == 0, msg
 
 
 class FilenameTestCase(unittest.TestCase):
@@ -93,11 +38,11 @@ class FilenameTestCase(unittest.TestCase):
 
         for path in allPyFiles:
             #hack - exclude barcode extensions from this test
-            if string.find(path, 'barcode'):
+            if path.find('barcode'):
                 pass
             else:
                 basename = os.path.splitext(path)[0]
-                truncPath = path[string.find(path, 'reportlab'):]
+                truncPath = path[path.find('reportlab'):]
                 msg = "Filename %s contains trailing digits." % truncPath
                 assert basename[-1] not in string.digits, msg
 
@@ -140,7 +85,7 @@ class FirstLineTestCase(SecureTestCase):
         file.close()
 
 def makeSuite():
-    suite = makeSuiteForClasses(SelfTestCase, AsciiFileTestCase, FilenameTestCase)
+    suite = makeSuiteForClasses(AsciiFileTestCase, FilenameTestCase)
     if sys.platform[:4] != 'java':
         loader = unittest.TestLoader()
         suite.addTest(loader.loadTestsFromTestCase(FirstLineTestCase))

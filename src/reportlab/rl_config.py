@@ -28,7 +28,6 @@ longTableOptimize =         1                       #default don't use Henning v
 autoConvertEncoding  =      0                       #convert internally as needed (experimental)
 _FUZZ=                      1e-6                    #fuzz for layout arithmetic
 wrapA85=                    0                       #set to 1 to get old wrapped line behaviour
-fsEncodings=('utf8','cp1252','cp430')               #encodings to attempt utf8 conversion with
 odbc_driver=                'odbc'                  #default odbc driver
 platypus_link_underline=    0                       #paragraph links etc underlined if true
 canvas_basefontname=        'Helvetica'             #this is used to initialize the canvas; if you override to make
@@ -168,7 +167,6 @@ longTableOptimize
 autoConvertEncoding  
 _FUZZ
 wrapA85
-fsEncodings
 odbc_driver
 platypus_link_underline
 canvas_basefontname

@@ -79,7 +79,7 @@ class ColorTestCase(unittest.TestCase):
             # Make sure the differences for each RGB component
             # isreally small (< power(10, -N)!
             N = 16 # max. value found to work on Python2.0 and Win2K.
-            deltas = map(abs, (r1-r2, g1-g2, b1-b2))
+            deltas = [abs(n) for n in (r1-r2, g1-g2, b1-b2)]
             assert deltas < [math.pow(10, -N)] * 3
 
     def test4(self):
@@ -98,7 +98,7 @@ class ColorTestCase(unittest.TestCase):
             # Make sure the differences for each RGB component
             # isreally small (< power(10, -N)!
             N = 16 # max. value found to work on Python2.0 and Win2K.
-            deltas = map(abs, (r1-r2, g1-g2, b1-b2))
+            deltas = [abs(n) for n in (r1-r2, g1-g2, b1-b2)]
             assert deltas < [math.pow(10, -N)] * 3
 
 
@@ -110,7 +110,7 @@ class ColorTestCase(unittest.TestCase):
         #do all named colors
         framePage(canvas, 'Color Demo - page %d' % canvas.getPageNumber())
 
-        all_colors = reportlab.lib.colors.getAllNamedColors().items()
+        all_colors = list(reportlab.lib.colors.getAllNamedColors().items())
         all_colors.sort() # alpha order by name
         canvas.setFont('Times-Roman', 10)
         text = 'This shows all the named colors in the HTML standard (plus their gray and CMYK equivalents).'

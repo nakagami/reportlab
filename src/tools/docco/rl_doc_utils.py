@@ -12,8 +12,9 @@ This module contains utilities for generating guides
 import os, sys, glob
 import string
 
-from rltemplate import RLDocTemplate
-from stylesheet import getStyleSheet
+from tools.docco.rltemplate import RLDocTemplate
+from tools.docco.stylesheet import getStyleSheet
+
 styleSheet = getStyleSheet()
 
 #from reportlab.platypus.doctemplate import SimpleDocTemplate
@@ -28,11 +29,11 @@ from reportlab.lib.styles import ParagraphStyle
 from reportlab.lib import colors
 from reportlab.lib.sequencer import getSequencer
 
-import examples
+from tools.docco import examples
 
 appmode=0
 
-from t_parse import Template
+from tools.docco.t_parse import Template
 QFcodetemplate = Template("X$X$", "X")
 QFreptemplate = Template("X^X^", "X")
 codesubst = "%s<font name=Courier>%s</font>"
@@ -45,7 +46,6 @@ def quickfix(text):
        format the arg as replaceable.  The escape sequence for literal
        $ is $\\$ (^ is ^\\^.
     """
-    from string import join
     for (template,subst) in [(QFcodetemplate, codesubst), (QFreptemplate, QFsubst)]:
         fragment = text
         parts = []
@@ -64,7 +64,7 @@ def quickfix(text):
                     fragment = fragment[index:]
         except ValueError:
             parts.append(fragment)
-        text = join(parts, "")
+        text = "".join(parts)
     return text
 #print quickfix("$testing$ testing $one$ ^two^ $three(^four^)$")
 
@@ -148,7 +148,7 @@ def space(inches=1./6):
 def EmbeddedCode(code,name='t'):
     eg(code)
     disc("produces")
-    exec code+("\ngetStory().append(%s)\n"%name)
+    exec(code+("\ngetStory().append(%s)\n"%name))
 
 def startKeep():
     return len(getStory())
@@ -310,7 +310,7 @@ class ParaBox(figures.Figure):
         for (key, value) in style.__dict__.items():
             lines.append('%s = %s' % (key, value))
         lines.sort()
-        return string.join(lines, '\n')
+        return '\n'.join(lines)
 
     def drawFigure(self):
 
@@ -348,7 +348,7 @@ class ParaBox(figures.Figure):
         for (key, value) in style.__dict__.items():
             if key not in ('name','parent'):
                 lines.append('%s = %s' % (key, value))
-        return string.join(lines, '\n')
+        return '\n'.join(lines)
 
 
 class ParaBox2(figures.Figure):

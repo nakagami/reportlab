@@ -6,9 +6,7 @@ __version__=''' $Id: test_platypus_paragraphs.py 3773 2010-09-08 13:36:54Z rgbec
 from reportlab.lib.testutils import setOutDir,makeSuiteForClasses, outputfile, printLocation
 setOutDir(__name__)
 import sys, os, unittest
-from string import split, strip, join, whitespace
 from operator import truth
-from types import StringType, ListType
 from reportlab.pdfbase.pdfmetrics import stringWidth, registerFont, registerFontFamily
 from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.platypus.paraparser import ParaParser
@@ -137,7 +135,7 @@ it's actually easy to do using platypus.
         gif = os.path.join(testsFolder,'pythonpowered.gif')
         story.append(ParagraphAndImage(Paragraph(text,bt),Image(gif)))
         phrase = 'This should be a paragraph spanning at least three pages. '
-        description = ''.join([('%d: '%i)+phrase for i in xrange(250)])
+        description = ''.join([('%d: '%i)+phrase for i in range(250)])
         story.append(ParagraphAndImage(Paragraph(description, bt),Image(gif),side='left'))
 
         doc = MyDocTemplate(outputfile('test_platypus_paragraphandimage.pdf'))
@@ -175,7 +173,7 @@ your browser. If an internal link begins with something that looks like a scheme
         heading = Paragraph('This is a heading',h3)
         story.append(ImageAndFlowables(Image(gif),[heading,Paragraph(text,bt)]))
         phrase = 'This should be a paragraph spanning at least three pages. '
-        description = ''.join([('%d: '%i)+phrase for i in xrange(250)])
+        description = ''.join([('%d: '%i)+phrase for i in range(250)])
         story.append(ImageAndFlowables(Image(gif),[heading,Paragraph(description, bt)],imageSide='left'))
         story.append(NextPageTemplate('special'))
         story.append(PageBreak())
@@ -316,7 +314,7 @@ class FragmentTestCase(unittest.TestCase):
         B = styleSheet['BodyText']
         text = ''
         P = Paragraph(text, B)
-        frags = map(lambda f:f.text, P.frags)
+        frags = [f.text for f in P.frags]
         assert frags == []
 
     def test1(self):
@@ -326,7 +324,7 @@ class FragmentTestCase(unittest.TestCase):
         B = styleSheet['BodyText']
         text = "X<font name=Courier>Y</font>Z"
         P = Paragraph(text, B)
-        frags = map(lambda f:f.text, P.frags)
+        frags = [f.text for f in P.frags]
         assert frags == ['X', 'Y', 'Z']
 
 class ULTestCase(unittest.TestCase):
@@ -380,7 +378,7 @@ phonemic and morphological analysis.''']
                 text0 = text0.replace('English sentences','<b>English sentences</b>').replace('quite equivalent','<i>quite equivalent</i>')
                 text1 = text1.replace('the methodological work','<b>the methodological work</b>').replace('to impose problems','<i>to impose problems</i>')
             for t in ('u','strike'):
-                for n in xrange(6):
+                for n in range(6):
                     for s in (normal,normal_center,normal_right,normal_just,normal_indent, normal_indent_lv_2):
                         for autoLeading in ('','min','max'):
                             if n==4 and s==normal_center and t=='strike' and mode==1:

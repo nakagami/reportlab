@@ -479,7 +479,7 @@ class ShadedPolygon(Widget,LineShape):
 
     def draw(self):
         P = self.points
-        P = map(lambda i, P=P:(P[i],P[i+1]),xrange(0,len(P),2))
+        P = map(lambda i, P=P:(P[i],P[i+1]),range(0,len(P),2))
         path = definePath([('moveTo',)+P[0]]+map(lambda x: ('lineTo',)+x,P[1:])+['closePath'],
             fillColor=None, strokeColor=None)
         path.isClipPath = 1

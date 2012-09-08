@@ -3,27 +3,27 @@
 #history http://www.reportlab.co.uk/cgi-bin/viewcvs.cgi/public/reportlab/trunk/reportlab/platypus/paragraph.py
 __version__=''' $Id: paragraph.py 3774 2010-09-08 15:11:10Z rgbecker $ '''
 __doc__='''The standard paragraph implementation'''
-from string import join, whitespace
+from string import whitespace
 from operator import truth
-from types import StringType, ListType
 from reportlab.pdfbase.pdfmetrics import stringWidth, getFont, getAscentDescent
 from reportlab.platypus.paraparser import ParaParser
 from reportlab.platypus.flowables import Flowable
 from reportlab.lib.colors import Color
 from reportlab.lib.enums import TA_LEFT, TA_RIGHT, TA_CENTER, TA_JUSTIFY
-from reportlab.lib.utils import _className
+from reportlab.lib.utils import _className, isStrType, isUnicodeType
 from reportlab.lib.geomutils import normalizeTRBL
 from reportlab.lib.textsplit import wordSplit, ALL_CANNOT_START
 from copy import deepcopy
 from reportlab.lib.abag import ABag
 from reportlab.rl_config import platypus_link_underline 
 from reportlab import rl_config
+import sys
 import re
 
 #on UTF8 branch, split and strip must be unicode-safe!
 #thanks to Dirk Holtwick for helpful discussions/insight
 #on this one
-_wsc_re_split=re.compile('[%s]+'% re.escape(''.join((
+_wsc_re_split=re.compile('[%s]+'% re.escape(' '.join((
     u'\u0009',  # HORIZONTAL TABULATION
     u'\u000A',  # LINE FEED
     u'\u000B',  # VERTICAL TABULATION
@@ -57,15 +57,28 @@ _wsc_re_split=re.compile('[%s]+'% re.escape(''.join((
     )))).split
 
 def split(text, delim=None):
-    if type(text) is str: text = text.decode('utf8')
-    if type(delim) is str: delim = delim.decode('utf8')
-    if delim is None and u'\xa0' in text:
-        return [uword.encode('utf8') for uword in _wsc_re_split(text)]
-    return [uword.encode('utf8') for uword in text.split(delim)]
+    if sys.version_info[0] == 3:
+        if isUnicodeType(text):
+            utext = text
+        else:
+            utext = text.decode('utf-8')
+        if delim is None and u'\xa0' in utext:
+            return [uword for uword in _wsc_re_split(text)]
+        return [uword for uword in utext.split(delim)]
+    else:
+        if type(text) is str: text = text.decode('utf8')
+        if type(delim) is str: delim = delim.decode('utf8')
+        if delim is None and u'\xa0' in text:
+            return [uword.encode('utf8') for uword in _wsc_re_split(text)]
+        return [uword.encode('utf8') for uword in text.split(delim)]
+
 
 def strip(text):
-    if type(text) is str: text = text.decode('utf8')
-    return text.strip().encode('utf8')
+    if hasattr(text, 'decode'): text = text.decode('utf8')
+    if sys.version_info[0] == 3:
+        return text.strip()
+    else:
+        return text.strip().encode('utf8')
 
 class ParaLines(ABag):
     """
@@ -95,14 +108,14 @@ class FragLine(ABag):
 _parser=ParaParser()
 
 def _lineClean(L):
-    return join(filter(truth,split(strip(L))))
+    return ' '.join(filter(truth,split(strip(L))))
 
 def cleanBlockQuotedText(text,joiner=' '):
     """This is an internal utility which takes triple-
     quoted text form within the document and returns
     (hopefully) the paragraph the user intended originally."""
     L=filter(truth,map(_lineClean, split(text, '\n')))
-    return join(L, joiner)
+    return joiner.join(L)
 
 def setXPos(tx,dx):
     if dx>1e-6 or dx<-1e-6:
@@ -110,21 +123,21 @@ def setXPos(tx,dx):
 
 def _leftDrawParaLine( tx, offset, extraspace, words, last=0):
     setXPos(tx,offset)
-    tx._textOut(join(words),1)
+    tx._textOut(' '.join(words),1)
     setXPos(tx,-offset)
     return offset
 
 def _centerDrawParaLine( tx, offset, extraspace, words, last=0):
     m = offset + 0.5 * extraspace
     setXPos(tx,m)
-    tx._textOut(join(words),1)
+    tx._textOut(' '.join(words),1)
     setXPos(tx,-m)
     return m
 
 def _rightDrawParaLine( tx, offset, extraspace, words, last=0):
     m = offset + extraspace
     setXPos(tx,m)
-    tx._textOut(join(words),1)
+    tx._textOut(' '.join(words),1)
     setXPos(tx,-m)
     return m
 
@@ -136,7 +149,7 @@ def _nbspCount(w):
 
 def _justifyDrawParaLine( tx, offset, extraspace, words, last=0):
     setXPos(tx,offset)
-    text  = join(words)
+    text  = ' '.join(words)
     if last or extraspace<=1e-8:
         #last one, left align
         tx._textOut(text,1)
@@ -371,8 +384,8 @@ def _getFragWords(frags,maxWidth=None):
     hangingStrip = False
     for f in frags:
         text = f.text
-        #del f.text # we can't do this until we sort out splitting
-                    # of paragraphs
+        if not isUnicodeType(text):
+            text = text.decode('utf-8')
         if text!='':
             if hangingStrip:
                 hangingStrip = False
@@ -463,7 +476,7 @@ def _drawBullet(canvas, offset, cur_y, bulletText, style):
     tx2 = canvas.beginText(style.bulletIndent, cur_y+getattr(style,"bulletOffsetY",0))
     tx2.setFont(style.bulletFontName, style.bulletFontSize)
     tx2.setFillColor(hasattr(style,'bulletColor') and style.bulletColor or style.textColor)
-    if isinstance(bulletText,basestring):
+    if isStrType(bulletText):
         tx2.textOut(bulletText)
     else:
         for f in bulletText:
@@ -482,7 +495,7 @@ def _handleBulletWidth(bulletText,style,maxWidths):
     '''work out bullet width and adjust maxWidths[0] if neccessary
     '''
     if bulletText:
-        if isinstance(bulletText,basestring):
+        if isStrType(bulletText):
             bulletWidth = stringWidth( bulletText, style.bulletFontName, style.bulletFontSize)
         else:
             #it's a list of fragments
@@ -555,12 +568,12 @@ def splitLines0(frags,widths):
 
 def _do_under_line(i, t_off, ws, tx, lm=-0.125):
     y = tx.XtraState.cur_y - i*tx.XtraState.style.leading + lm*tx.XtraState.f.fontSize
-    textlen = tx._canvas.stringWidth(join(tx.XtraState.lines[i][1]), tx._fontname, tx._fontsize)
+    textlen = tx._canvas.stringWidth(' '.join(tx.XtraState.lines[i][1]), tx._fontname, tx._fontsize)
     tx._canvas.line(t_off, y, t_off+textlen+ws, y)
 
 _scheme_re = re.compile('^[a-zA-Z][-+a-zA-Z0-9]+$')
 def _doLink(tx,link,rect):
-    if isinstance(link,unicode):
+    if sys.version_info[0] != 3 and isUnicodeType(link):
         link = link.encode('utf8')
     parts = link.split(':',1)
     scheme = len(parts)==2 and parts[0].lower() or ''
@@ -578,7 +591,7 @@ def _do_link_line(i, t_off, ws, tx):
     xs = tx.XtraState
     leading = xs.style.leading
     y = xs.cur_y - i*leading - xs.f.fontSize/8.0 # 8.0 factor copied from para.py
-    text = join(xs.lines[i][1])
+    text = ' '.join(xs.lines[i][1])
     textlen = tx._canvas.stringWidth(text, tx._fontname, tx._fontsize)
     _doLink(tx, xs.link, (t_off, y, t_off+textlen+ws, y+leading))
 
@@ -628,15 +641,19 @@ def _do_post_text(tx):
     xs.cur_y -= leading
 
 def textTransformFrags(frags,style):
+    if sys.version_info[0] == 3:
+        u = str   # quick & dirty
+    else:
+        u = unicode
     tt = style.textTransform
     if tt:
         tt=tt.lower()
         if tt=='lowercase':
-            tt = unicode.lower
+            tt = u.lower
         elif tt=='uppercase':
-            tt = unicode.upper
+            tt = u.upper
         elif  tt=='capitalize':
-            tt = unicode.title
+            tt = u.title
         elif tt=='none':
             return
         else:
@@ -644,40 +661,63 @@ def textTransformFrags(frags,style):
         n = len(frags)
         if n==1:
             #single fragment the easy case
-            frags[0].text = tt(frags[0].text.decode('utf8')).encode('utf8')
-        elif tt is unicode.title:
+            s = frags[0].text
+            if not isUnicodeType(s):
+                s = s.decode('utf8')
+            frags[0].text = tt(s).encode('utf8')
+        elif tt is u.title:
             pb = True
             for f in frags:
                 t = f.text
                 if not t: continue
-                u = t.decode('utf8')
-                if u.startswith(u' ') or pb:
-                    u = tt(u)
+                if not isUnicodeType(t):
+                    t = t.decode('utf8')
+                if t.startswith(u' ') or pb:
+                    t = tt(t)
                 else:
-                    i = u.find(u' ')
+                    i = t.find(u' ')
                     if i>=0:
-                        u = u[:i]+tt(u[i:])
-                pb = u.endswith(u' ')
-                f.text = u.encode('utf8')
+                        t = t[:i]+tt(t[i:])
+                pb = t.endswith(u' ')
+                f.text = t.encode('utf8')
         else:
             for f in frags:
                 t = f.text
                 if not t: continue
-                f.text = tt(t.decode('utf8')).encode('utf8')
+                if not isUnicodeType(t):
+                    t = t.decode('utf8')
+                f.text = tt(t).encode('utf8')
 
-class cjkU(unicode):
-    '''simple class to hold the frag corresponding to a str'''
-    def __new__(cls,value,frag,encoding):
-        self = unicode.__new__(cls,value)
-        self._frag = frag
-        if hasattr(frag,'cbDefn'):
-            w = getattr(frag.cbDefn,'width',0)
-            self._width = w
-        else:
-            self._width = stringWidth(value,frag.fontName,frag.fontSize)
-        return self
-    frag = property(lambda self: self._frag)
-    width = property(lambda self: self._width)
+if sys.version_info[0] == 3:
+    class cjkU(str):
+        '''simple class to hold the frag corresponding to a str'''
+        def __new__(cls,value,frag,encoding):
+            if not isUnicodeType(value):
+                value = value.decode(encoding)
+            self = str.__new__(cls,value)
+            self._frag = frag
+            if hasattr(frag,'cbDefn'):
+                w = getattr(frag.cbDefn,'width',0)
+                self._width = w
+            else:
+                self._width = stringWidth(value,frag.fontName,frag.fontSize)
+            return self
+        frag = property(lambda self: self._frag)
+        width = property(lambda self: self._width)
+else:
+    class cjkU(unicode):
+        '''simple class to hold the frag corresponding to a str'''
+        def __new__(cls,value,frag,encoding):
+            self = unicode.__new__(cls,value)
+            self._frag = frag
+            if hasattr(frag,'cbDefn'):
+                w = getattr(frag.cbDefn,'width',0)
+                self._width = w
+            else:
+                self._width = stringWidth(value,frag.fontName,frag.fontSize)
+            return self
+        frag = property(lambda self: self._frag)
+        width = property(lambda self: self._width)
 
 def makeCJKParaLine(U,extraSpace,calcBounds):
     words = []
@@ -717,7 +757,7 @@ def cjkFragSplit(frags, maxWidths, calcBounds, encoding='utf8'):
     U = []  #get a list of single glyphs with their widths etc etc
     for f in frags:
         text = f.text
-        if not isinstance(text,unicode):
+        if not isUnicodeType(text):
             text = text.decode(encoding)
         if text:
             U.extend([cjkU(t,f,encoding) for t in text])
@@ -1400,7 +1440,7 @@ class Paragraph(Flowable):
                     if link: _do_link_line(0, dx, ws, tx)
 
                     #now the middle of the paragraph, aligned with the left margin which is our origin.
-                    for i in xrange(1, nLines):
+                    for i in range(1, nLines):
                         ws = lines[i][0]
                         t_off = dpl( tx, _offsets[i], ws, lines[i][1], noJustifyLast and i==lim)
                         if dpl!=_justifyDrawParaLine: ws = 0
@@ -1408,7 +1448,7 @@ class Paragraph(Flowable):
                         if strike: _do_under_line(i, t_off+leftIndent, ws, tx, lm=0.125)
                         if link: _do_link_line(i, t_off+leftIndent, ws, tx)
                 else:
-                    for i in xrange(1, nLines):
+                    for i in range(1, nLines):
                         dpl( tx, _offsets[i], lines[i][0], lines[i][1], noJustifyLast and i==lim)
             else:
                 f = lines[0]
@@ -1459,7 +1499,7 @@ class Paragraph(Flowable):
                 _do_post_text(tx)
 
                 #now the middle of the paragraph, aligned with the left margin which is our origin.
-                for i in xrange(1, nLines):
+                for i in range(1, nLines):
                     f = lines[i]
                     dpl( tx, _offsets[i], f, noJustifyLast and i==lim)
                     _do_post_text(tx)
@@ -1476,7 +1516,7 @@ class Paragraph(Flowable):
             for frag in frags:
                 if hasattr(frag, 'text'):
                     plains.append(frag.text)
-            return join(plains, '')
+            return ''.join(plains)
         elif identify:
             text = getattr(self,'text',None)
             if text is None: text = repr(self)
@@ -1498,7 +1538,7 @@ class Paragraph(Flowable):
 
 if __name__=='__main__':    #NORUNTESTS
     def dumpParagraphLines(P):
-        print 'dumpParagraphLines(<Paragraph @ %d>)' % id(P)
+        print('dumpParagraphLines(<Paragraph @ %d>)' % id(P))
         lines = P.blPara.lines
         for l,line in enumerate(lines):
             line = lines[l]
@@ -1507,10 +1547,10 @@ if __name__=='__main__':    #NORUNTESTS
             else:
                 words = line[1]
             nwords = len(words)
-            print 'line%d: %d(%s)\n  ' % (l,nwords,str(getattr(line,'wordCount','Unknown'))),
-            for w in xrange(nwords):
-                print "%d:'%s'"%(w,getattr(words[w],'text',words[w])),
-            print
+            print('line%d: %d(%s)\n  ' % (l,nwords,str(getattr(line,'wordCount','Unknown'))),)
+            for w in range(nwords):
+                print("%d:'%s'"%(w,getattr(words[w],'text',words[w])),)
+            print()
 
     def fragDump(w):
         R= ["'%s'" % w[1]]
@@ -1520,20 +1560,20 @@ if __name__=='__main__':    #NORUNTESTS
         return ', '.join(R)
 
     def dumpParagraphFrags(P):
-        print 'dumpParagraphFrags(<Paragraph @ %d>) minWidth() = %.2f' % (id(P), P.minWidth())
+        print('dumpParagraphFrags(<Paragraph @ %d>) minWidth() = %.2f' % (id(P), P.minWidth()))
         frags = P.frags
         n =len(frags)
-        for l in xrange(n):
-            print "frag%d: '%s' %s" % (l, frags[l].text,' '.join(['%s=%s' % (k,getattr(frags[l],k)) for k in frags[l].__dict__ if k!=text]))
+        for l in range(n):
+            print("frag%d: '%s' %s" % (l, frags[l].text,' '.join(['%s=%s' % (k,getattr(frags[l],k)) for k in frags[l].__dict__ if k!=text])))
 
         l = 0
         cum = 0
         for W in _getFragWords(frags,360):
             cum += W[0]
-            print "fragword%d: cum=%3d size=%d" % (l, cum, W[0]),
+            print("fragword%d: cum=%3d size=%d" % (l, cum, W[0]),)
             for w in W[1:]:
-                print '(%s)' % fragDump(w),
-            print
+                print('(%s)' % fragDump(w),)
+            print()
             l += 1
 
 
@@ -1598,18 +1638,18 @@ umfassend zu sein."""
         dumpParagraphLines(P)
 
     if flagged(4):
-        text='''Die eingebaute Funktion <font name=Courier>range(i, j [, stride])</font><onDraw name=myIndex label="eingebaute Funktionen::range()"><onDraw name=myIndex label="range() (Funktion)"><onDraw name=myIndex label="Funktionen::range()"> erzeugt eine Liste von Ganzzahlen und f&#xfc;llt sie mit Werten <font name=Courier>k</font>, f&#xfc;r die gilt: <font name=Courier>i &lt;= k &lt; j</font>. Man kann auch eine optionale Schrittweite angeben. Die eingebaute Funktion <font name=Courier>xrange()</font><onDraw name=myIndex label="eingebaute Funktionen::xrange()"><onDraw name=myIndex label="xrange() (Funktion)"><onDraw name=myIndex label="Funktionen::xrange()"> erf&#xfc;llt einen &#xe4;hnlichen Zweck, gibt aber eine unver&#xe4;nderliche Sequenz vom Typ <font name=Courier>XRangeType</font><onDraw name=myIndex label="XRangeType"> zur&#xfc;ck. Anstatt alle Werte in der Liste abzuspeichern, berechnet diese Liste ihre Werte, wann immer sie angefordert werden. Das ist sehr viel speicherschonender, wenn mit sehr langen Listen von Ganzzahlen gearbeitet wird. <font name=Courier>XRangeType</font> kennt eine einzige Methode, <font name=Courier>s.tolist()</font><onDraw name=myIndex label="XRangeType::tolist() (Methode)"><onDraw name=myIndex label="s.tolist() (Methode)"><onDraw name=myIndex label="Methoden::s.tolist()">, die seine Werte in eine Liste umwandelt.'''
+        text='''Die eingebaute Funktion <font name=Courier>range(i, j [, stride])</font><onDraw name=myIndex label="eingebaute Funktionen::range()"><onDraw name=myIndex label="range() (Funktion)"><onDraw name=myIndex label="Funktionen::range()"> erzeugt eine Liste von Ganzzahlen und f&#xfc;llt sie mit Werten <font name=Courier>k</font>, f&#xfc;r die gilt: <font name=Courier>i &lt;= k &lt; j</font>. Man kann auch eine optionale Schrittweite angeben. Die eingebaute Funktion <font name=Courier>range()</font><onDraw name=myIndex label="eingebaute Funktionen::range()"><onDraw name=myIndex label="range() (Funktion)"><onDraw name=myIndex label="Funktionen::range()"> erf&#xfc;llt einen &#xe4;hnlichen Zweck, gibt aber eine unver&#xe4;nderliche Sequenz vom Typ <font name=Courier>XRangeType</font><onDraw name=myIndex label="XRangeType"> zur&#xfc;ck. Anstatt alle Werte in der Liste abzuspeichern, berechnet diese Liste ihre Werte, wann immer sie angefordert werden. Das ist sehr viel speicherschonender, wenn mit sehr langen Listen von Ganzzahlen gearbeitet wird. <font name=Courier>XRangeType</font> kennt eine einzige Methode, <font name=Courier>s.tolist()</font><onDraw name=myIndex label="XRangeType::tolist() (Methode)"><onDraw name=myIndex label="s.tolist() (Methode)"><onDraw name=myIndex label="Methoden::s.tolist()">, die seine Werte in eine Liste umwandelt.'''
         aW = 420
         aH = 64.4
         P=Paragraph(text, B)
         dumpParagraphFrags(P)
         w,h = P.wrap(aW,aH)
-        print 'After initial wrap',w,h
+        print('After initial wrap',w,h)
         dumpParagraphLines(P)
         S = P.split(aW,aH)
         dumpParagraphFrags(S[0])
         w0,h0 = S[0].wrap(aW,aH)
-        print 'After split wrap',w0,h0
+        print('After split wrap',w0,h0)
         dumpParagraphLines(S[0])
 
     if flagged(5):
@@ -1643,7 +1683,7 @@ umfassend zu sein."""
         w,h = P.wrap(6*72, 9.7*72)
         dumpParagraphLines(P)
         S = P.split(6*72,h/2.0)
-        print len(S)
+        print(len(S))
         dumpParagraphLines(S[0])
         dumpParagraphLines(S[1])
 

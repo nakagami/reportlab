@@ -16,7 +16,7 @@ from reportlab.graphics.shapes import *
 from reportlab.graphics.renderbase import StateTracker, getStateDelta, renderScaledDrawing
 from reportlab.pdfbase.pdfmetrics import getFont, unicode2T1
 from math import sin, cos, pi, ceil
-from reportlab.lib.utils import getStringIO, open_and_read
+from reportlab.lib.utils import getBytesIO, open_and_read
 from reportlab import rl_config
 
 class RenderPMError(Exception):
@@ -237,7 +237,7 @@ def _saveAsPICT(im,fn,fmt,transparent=None):
     #s = _renderPM.pil2pict(cols,rows,im.tostring(),im.im.getpalette(),transparent is not None and Color2Hex(transparent) or -1)
     s = _renderPM.pil2pict(cols,rows,im.tostring(),im.im.getpalette())
     if not hasattr(fn,'write'):
-        open(os.path.splitext(fn)[0]+'.'+string.lower(fmt),'wb').write(s)
+        open(os.path.splitext(fn)[0]+'.'+fmt.lower(),'wb').write(s)
         if os.name=='mac':
             from reportlab.lib.utils import markfilename
             markfilename(fn,ext='PICT')
@@ -346,7 +346,7 @@ class PMCanvas:
             markfilename(fn,ext=fmt)
 
     def saveToString(self,fmt='GIF'):
-        s = getStringIO()
+        s = getBytesIO()
         self.saveToFile(s,fmt=fmt)
         return s.getvalue()
 
@@ -495,7 +495,7 @@ class PMCanvas:
             n = len(FT)
             nm1 = n-1
             wscale = 0.001*fontSize
-            for i in xrange(n):
+            for i in range(n):
                 f, t = FT[i]
                 if f!=fc:
                     _setFont(gs,f.fontName,fontSize)
@@ -652,7 +652,7 @@ def drawToFile(d,fn,fmt='GIF', dpi=72, bg=0xffffff, configPIL=None, showBoundary
     c.saveToFile(fn,fmt)
 
 def drawToString(d,fmt='GIF', dpi=72, bg=0xffffff, configPIL=None, showBoundary=rl_config._unset_):
-    s = getStringIO()
+    s = getBytesIO()
     drawToFile(d,s,fmt=fmt, dpi=dpi, bg=bg, configPIL=configPIL)
     return s.getvalue()
 

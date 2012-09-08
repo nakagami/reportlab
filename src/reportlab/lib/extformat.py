@@ -2,10 +2,10 @@
 #see license.txt for license details
 __version__='''$Id: extformat.py 3665 2010-02-09 15:55:45Z rgbecker $'''
 __doc__='''Apparently not used anywhere, purpose unknown!'''
-from tokenize import tokenprog
 import sys
 
 def _matchorfail(text, pos):
+	from tokenize import tokenprog
 	match = tokenprog.match(text, pos)
 	if match is None: raise ValueError(text, pos)
 	return match, match.end()

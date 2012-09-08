@@ -6,9 +6,7 @@ __version__='''$Id: test_platypus_leftright.py 3660 2010-02-08 18:17:33Z damian 
 from reportlab.lib.testutils import setOutDir,makeSuiteForClasses, outputfile, printLocation
 setOutDir(__name__)
 import sys, os, time
-from string import split, strip, join, whitespace
 from operator import truth
-from types import StringType, ListType
 import unittest
 from reportlab.platypus.flowables import Flowable
 from reportlab.lib import colors

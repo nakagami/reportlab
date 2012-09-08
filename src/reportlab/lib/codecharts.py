@@ -357,7 +357,7 @@ def test():
 ##    #Big5CodeChart(0xA1, 'MSungStd-Light-Acro','ETenms-B5-H').drawOn(c, 72, 500)
 
     c.save()
-    print 'saved codecharts.pdf'
+    print('saved codecharts.pdf')
 
 if __name__=='__main__':
     test()

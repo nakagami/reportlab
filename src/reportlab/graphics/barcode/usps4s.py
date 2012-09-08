@@ -125,7 +125,7 @@ class USPS_4State(Barcode):
                 svalue = tracking[j:i]
                 try:
                     if len(svalue)!=nd: raise ValueError
-                    for j in xrange(nd):
+                    for j in range(nd):
                         value *= 10
                         value += int(svalue[j])
                 except:
@@ -181,7 +181,7 @@ class USPS_4State(Barcode):
             aC = C.append
             table1 = self.table1
             table2 = self.table2
-            for i in xrange(10):
+            for i in range(10):
                 cw = codewords[i]
                 if cw<=1286:
                     c = table1[cw]
@@ -318,7 +318,7 @@ def _crc11(value):
     gp = 0x0F35
     fcs = 0x07FF
     data = int(bytes[:2],16)<<5
-    for b in xrange(2,8):
+    for b in range(2,8):
         if (fcs ^ data)&0x400:
             fcs = (fcs<<1)^gp
         else:
@@ -326,9 +326,9 @@ def _crc11(value):
         fcs &= 0x7ff
         data <<= 1
 
-    for x in xrange(2,2*13,2):
+    for x in range(2,2*13,2):
         data = int(bytes[x:x+2],16)<<3
-        for b in xrange(8):
+        for b in range(8):
             if (fcs ^ data)&0x400:
                 fcs = (fcs<<1)^gp
             else:
@@ -343,7 +343,7 @@ def _ru13(i):
     31 7936 7808 47
     '''
     r = 0
-    for x in xrange(13):
+    for x in range(13):
         r <<= 1
         r |= i & 1
         i >>= 1
@@ -358,9 +358,9 @@ def _initNof13Table(N,lenT):
     T = lenT*[None]
     l = 0
     u = lenT-1
-    for c in xrange(8192):
+    for c in range(8192):
         bc = 0
-        for b in xrange(13):
+        for b in range(13):
             bc += (c&(1<<b))!=0
         if bc!=N: continue
         r = _ru13(c)

@@ -6,7 +6,7 @@ __doc__="""Render drawing objects in Postscript"""
 
 import string, types
 from reportlab.pdfbase.pdfmetrics import getFont, stringWidth, unicode2T1 # for font info
-from reportlab.lib.utils import fp_str, getStringIO
+from reportlab.lib.utils import fp_str, getBytesIO
 from reportlab.lib.colors import black
 from reportlab.graphics.renderbase import Renderer, StateTracker, getStateDelta, renderScaledDrawing
 from reportlab.graphics.shapes import STATE_DEFAULTS
@@ -15,7 +15,7 @@ from types import StringType
 from operator import getitem
 from reportlab import rl_config
 _ESCAPEDICT={}
-for c in xrange(256):
+for c in range(256):
     if c<32 or c>=127:
         _ESCAPEDICT[chr(c)]= '\\%03o' % c
     elif c in (ord('\\'),ord('('),ord(')')):
@@ -589,7 +589,7 @@ class PSCanvas:
         hex_encoded = self._AsciiHexEncode(rawimage)
 
         # write in blocks of 78 chars per line
-        outstream = getStringIO(hex_encoded)
+        outstream = getBytesIO(hex_encoded)
 
         dataline = outstream.read(78)
         while dataline != "":
@@ -601,7 +601,7 @@ class PSCanvas:
     # end of drawImage
     def _AsciiHexEncode(self, input):  # also based on piddlePDF
         "Helper function used by images"
-        output = getStringIO()
+        output = getBytesIO()
         for char in input:
             output.write('%02x' % ord(char))
         return output.getvalue()
@@ -659,7 +659,7 @@ class PSCanvas:
         hex_encoded = self._AsciiHexEncode(rawimage)
 
         # write in blocks of 78 chars per line
-        outstream = getStringIO(hex_encoded)
+        outstream = getBytesIO(hex_encoded)
 
         dataline = outstream.read(78)
         while dataline != "":
@@ -691,7 +691,7 @@ def _pointsFromList(L):
     '''
     P=[]
     a = P.append
-    for i in xrange(0,len(L),2):
+    for i in range(0,len(L),2):
         a((L[i],L[i+1]))
     return P
 
@@ -874,7 +874,7 @@ def drawToFile(d,fn, showBoundary=rl_config.showBoundary,**kwd):
 
 def drawToString(d, showBoundary=rl_config.showBoundary):
     "Returns a PS as a string in memory, without touching the disk"
-    s = getStringIO()
+    s = getBytesIO()
     drawToFile(d, s, showBoundary=showBoundary)
     return s.getvalue()
 

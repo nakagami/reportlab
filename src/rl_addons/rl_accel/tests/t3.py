@@ -16,7 +16,7 @@ print _py_stringWidth(utext,12)
 assert stringWidth(utext,12)==_py_stringWidth(utext,12)
 def tim(N,msg,func,*args):
     t0 = time.time()
-    for i in xrange(N):
+    for i in range(N):
         x = func(*args)
     t1 = time.time()
     return "%s N=%d t=%.3f\n%r" % (msg,N,t1-t0,x)

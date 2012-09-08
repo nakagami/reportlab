@@ -33,10 +33,11 @@ the former axes in its own coordinate system.
 
 from reportlab.lib.validators import    isNumber, isNumberOrNone, isListOfStringsOrNone, isListOfNumbers, \
                                         isListOfNumbersOrNone, isColorOrNone, OneOf, isBoolean, SequenceOf, \
-                                        isString, EitherOr, Validator, _SequenceTypes, NoneOr, isInstanceOf, \
+                                        isString, EitherOr, Validator, NoneOr, isInstanceOf, \
                                         isNormalDate
 from reportlab.lib.attrmap import *
 from reportlab.lib import normalDate
+from reportlab.lib.utils import isSeqType
 from reportlab.graphics.shapes import Drawing, Line, PolyLine, Group, STATE_DEFAULTS, _textBoxLimits, _rotatedBoxLimits
 from reportlab.graphics.widgetbase import Widget, TypedPropertyCollection
 from reportlab.graphics.charts.textlabels import Label
@@ -45,24 +46,31 @@ import copy
 
 
 # Helpers.
-def _findMinMaxValue(V, x, default, func, special=None):
-    if isinstance(V[0][0],_SequenceTypes):
-        if special:
-            f=lambda T,x=x,special=special,func=func: special(T,x,func)
-        else:
-            f=lambda T,x=x: T[x]
-        V=map(lambda e,f=f: map(f,e),V)
-    V = filter(len,map(lambda x: filter(lambda x: x is not None,x),V))
-    if len(V)==0: return default
-    return func(map(func,V))
-
-def _findMin(V, x, default,special=None):
+def _findMin(V, x, default):
     '''find minimum over V[i][x]'''
-    return _findMinMaxValue(V,x,default,min,special=special)
-
-def _findMax(V, x, default,special=None):
+    v = default
+    for r in V:
+        for c in r:
+            if isSeqType(c):
+                if c[x] < v:
+                    v = c[x]
+            else:
+                if c < v:
+                    v = c
+    return v
+                
+def _findMax(V, x, default):
     '''find maximum over V[i][x]'''
-    return _findMinMaxValue(V,x,default,max,special=special)
+    v = default
+    for r in V:
+        for c in r:
+            if isSeqType(c):
+                if c[x] > v:
+                    v = c[x]
+            else:
+                if c > v:
+                    v = c
+    return v
 
 def _allInt(values):
     '''true if all values are int'''
@@ -445,7 +453,7 @@ class CategoryAxis(_AxisG):
     def _calcTickmarkPositions(self):
         n = self._catCount
         if self.tickShift:
-            self._tickValues = [t+0.5 for t in xrange(n)]
+            self._tickValues = [t+0.5 for t in range(n)]
         else:
             if self.reverseDirection:
                 self._tickValues = range(-1,n)
@@ -515,7 +523,7 @@ class _XTicks:
                 if OTV[-1]<vx: OTV.append(OTV[-1]+dst)
                 dst /= float(nst+1)
                 for i,x in enumerate(OTV[:-1]):
-                    for j in xrange(nst):
+                    for j in range(nst):
                         t = x+dCnv((j+1)*dst)
                         if t<=vn or t>=vx: continue
                         T(t)
@@ -669,7 +677,7 @@ class XCategoryAxis(_XTicks,CategoryAxis):
             _y = self._labelAxisPos()
             _x = self._x
 
-            for i in xrange(catCount):
+            for i in range(catCount):
                 if reverseDirection: ic = catCount-i-1
                 else: ic = i
                 if ic>=n: continue
@@ -783,7 +791,7 @@ class YCategoryAxis(_YTicks,CategoryAxis):
             _x = self._labelAxisPos()
             _y = self._y
 
-            for i in xrange(catCount):
+            for i in range(catCount):
                 if reverseDirection: ic = catCount-i-1
                 else: ic = i
                 if ic>=n: continue
@@ -1067,10 +1075,10 @@ class ValueAxis(_AxisG):
         abf = self.avoidBoundFrac
         do_rr = not getattr(self,'valueSteps',None)
         do_abf = abf and do_rr
-        if not isinstance(abf,_SequenceTypes):
+        if not isSeqType(abf):
             abf = abf, abf
         abfiz = getattr(self,'abf_ignore_zero', False)
-        if not isinstance(abfiz,_SequenceTypes):
+        if not isSeqType(abfiz):
             abfiz = abfiz, abfiz
         do_rr = rangeRound is not 'none' and do_rr
         if do_rr:
@@ -1082,7 +1090,7 @@ class ValueAxis(_AxisG):
         abS = self.avoidBoundSpace
         do_abs = abS
         if do_abs:
-            if not isinstance(abS,_SequenceTypes):
+            if not isSeqType(abS):
                 abS = abS, abS
         aL = float(self._length)
 
@@ -1206,7 +1214,7 @@ class ValueAxis(_AxisG):
         if rangeRound in ('both','ceiling'):
             if v<valueMax-fuzz: i1 += 1
         elif v>valueMax+fuzz: i1 -= 1
-        return valueStep,[i*valueStep for i in xrange(i0,i1+1)]
+        return valueStep,[i*valueStep for i in range(i0,i1+1)]
 
     def _calcTickPositions(self):
         return self._calcStepAndTickPositions()[1]
@@ -1282,7 +1290,7 @@ class ValueAxis(_AxisG):
                     else:
                         t = tick
                     if type(f) is str: txt = f % t
-                    elif isinstance(f,_SequenceTypes):
+                    elif isSeqType(f):
                         #it's a list, use as many items as we get
                         if i < len(f):
                             txt = f[i]
@@ -1294,7 +1302,7 @@ class ValueAxis(_AxisG):
                         else:
                             txt = f(t)
                     else:
-                        raise ValueError, 'Invalid labelTextFormat %s' % f
+                        raise ValueError('Invalid labelTextFormat %s' % f)
                     if post: txt = post % txt
                     pos[d] = v
                     label.setOrigin(*pos)
@@ -1445,7 +1453,7 @@ class _isListOfDaysAndMonths(Validator):
     for recurring dates.
     """
     def test(self,x):
-        if isinstance(x,_SequenceTypes):
+        if isSeqType(x):
             answer = True
             for element in x:
                 try:
@@ -1668,7 +1676,7 @@ class NormalDateXValueAxis(XValueAxis):
 
         VC = self._valueClass
         for D in data:
-            for i in xrange(len(D)):
+            for i in range(len(D)):
                 x, y = D[i]
                 if not isinstance(x,VC):
                     D[i] = (VC(x),y)
@@ -1841,7 +1849,7 @@ class AdjYValueAxis(YValueAxis):
         abf = self.avoidBoundFrac
         if abf:
             i1 = (T[1]-T[0])
-            if not isinstance(abf,_SequenceTypes):
+            if not isSeqType(abf):
                 i0 = i1 = i1*abf
             else:
                 i0 = i1*abf[0]
@@ -1868,7 +1876,7 @@ class AdjYValueAxis(YValueAxis):
             self._valueMin = self._valueMin - m
 
         if self.leftAxisSkipLL0:
-            if isinstance(self.leftAxisSkipLL0,_SequenceTypes):
+            if isSeqType(self.leftAxisSkipLL0):
                 for x in self.leftAxisSkipLL0:
                     try:
                         L[x] = ''

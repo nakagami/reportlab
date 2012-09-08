@@ -13,8 +13,9 @@ These can be constructed from several popular formats.  We also include
 
 - various conversion and construction functions
 '''
+import sys
 import math
-from reportlab.lib.utils import fp_str
+from reportlab.lib.utils import fp_str, isStrType
 
 class Color:
     """This class is used to represent color.  Components red, green, blue
@@ -33,7 +34,7 @@ class Color:
     def __hash__(self):
         return hash((self.red, self.green, self.blue, self.alpha))
 
-    def __cmp__(self,other):
+    def __eq__(self,other):
         '''simple comparison by component; cmyk != color ever
         >>> cmp(Color(0,0,0),None)
         -1
@@ -42,13 +43,14 @@ class Color:
         >>> cmp(Color(0,0,0),CMYKColor(0,0,0,1)),Color(0,0,0).rgba()==CMYKColor(0,0,0,1).rgba()
         (-1, True)
         '''
-        if isinstance(other,CMYKColor) or not isinstance(other,Color): return -1
-        try:
-            return cmp((self.red, self.green, self.blue, self.alpha),
-                    (other.red, other.green, other.blue, other.alpha))
-        except:
-            return -1
-        return 0
+        if isinstance(other,CMYKColor) or not isinstance(other,Color): return False
+        return (self.red == other.red and self.green == other.green and self.blue == other.blue and self.alpha == other.alpha)
+
+    def __ne__(self,other):
+        return not self.__eq__(other)
+
+    def __cmp__(self,other):
+        raise NotImplementedError("no __cmp__")
 
     def rgb(self):
         "Returns a three-tuple of components"
@@ -84,7 +86,7 @@ class Color:
 
     def _lookupName(self,D={}):
         if not D:
-            for n,v in getAllNamedColors().iteritems():
+            for n,v in getAllNamedColors().items():
                 if not isinstance(v,CMYKColor):
                     t = v.red,v.green,v.blue
                     if t in D:
@@ -152,14 +154,14 @@ class CMYKColor(Color):
         *NB* note this dosen't reach density zero'''
         scale = self._scale
         dd = scale/float(n)
-        L = [self.clone(density=scale - i*dd) for i in xrange(n)]
+        L = [self.clone(density=scale - i*dd) for i in range(n)]
         if reverse: L.reverse()
         return L
 
     def __hash__(self):
         return hash( (self.cyan, self.magenta, self.yellow, self.black, self.density, self.spotName, self.alpha) )
 
-    def __cmp__(self,other):
+    def __eq__(self,other):
         """obvious way to compare colours
         Comparing across the two color models is of limited use.
         >>> cmp(CMYKColor(0,0,0,1),None)
@@ -171,14 +173,14 @@ class CMYKColor(Color):
         >>> cmp(CMYKColor(0,0,0,1),Color(0,0,1)),Color(0,0,0).rgba()==CMYKColor(0,0,0,1).rgba()
         (-1, True)
         """
-        if not isinstance(other, CMYKColor): return -1
-        try:
-            return cmp(
-                (self.cyan, self.magenta, self.yellow, self.black, self.density, self.alpha, self.spotName),
-                (other.cyan, other.magenta, other.yellow, other.black, other.density, other.alpha, other.spotName))
-        except: # or just return 'not equal' if not a color
-            return -1
-        return 0
+        if not isinstance(other, CMYKColor): return False
+        return (self.cyan == other.cyan and self.magenta == other.magenta and self.yellow == other.yellow and self.black == other.black and self.density == other.density and self.alpha == other.alpha and self.spotName == other.spotName)
+
+    def __ne__(self,other):
+        return not self.__eq__(other)
+
+    def __cmp__(self,other):
+        raise NotImplementedError("no __cmp__")
 
     def cmyk(self):
         "Returns a tuple of four color components - syntactic sugar"
@@ -194,7 +196,7 @@ class CMYKColor(Color):
 
     def _lookupName(self,D={}):
         if not D:
-            for n,v in getAllNamedColors().iteritems():
+            for n,v in getAllNamedColors().items():
                 if isinstance(v,CMYKColor):
                     t = v.cyan,v.magenta,v.yellow,v.black
                     if t in D:
@@ -311,7 +313,7 @@ def HexColor(val, htmlOnly=False, alpha=False):
 
     """ #" for emacs
 
-    if isinstance(val,basestring):
+    if isStrType(val):
         b = 10
         if val[:1] == '#':
             val = val[1:]
@@ -343,7 +345,7 @@ def linearlyInterpolatedColor(c0, c1, x0, x1, x):
     if x1<x0:
         x0,x1,c0,c1 = x1,x0,c1,c0 # normalized so x1>x0
     if x<x0-1e-8 or x>x1+1e-8: # fudge factor for numerical problems
-        raise ValueError, "Can't interpolate: x=%f is not between %f and %f!" % (x,x0,x1)
+        raise ValueError("Can't interpolate: x=%f is not between %f and %f!" % (x,x0,x1))
     if x<=x0:
         return c0
     elif x>=x1:
@@ -439,7 +441,7 @@ def linearlyInterpolatedColor(c0, c1, x0, x1, x):
             a = c0.alpha+x*(c1.alpha - c0.alpha)/dx
             return PCMYKColor(c*100,m*100,y*100,k*100, density=d*100, alpha=a*100)
     else:
-        raise ValueError, "Can't interpolate: Unknown color class %s!" % cname
+        raise ValueError("Can't interpolate: Unknown color class %s!" % cname)
 
 def obj_R_G_B(c):
     '''attempt to convert an object to (red,green,blue)'''
@@ -661,7 +663,7 @@ def getAllNamedColors():
     # uses a singleton for efficiency
     global _namedColors
     if _namedColors is not None: return _namedColors
-    import colors
+    from reportlab.lib import colors
     _namedColors = {}
     for (name, value) in colors.__dict__.items():
         if isinstance(value, Color):
@@ -683,12 +685,12 @@ def describe(aColor,mode=0):
             closest = (distance, name, color)
     if mode<=1:
         s = 'best match is %s, distance %0.4f' % (closest[1], closest[0])
-        if mode==0: print s
+        if mode==0: print(s)
         else: return s
     elif mode==2:
         return (closest[1], closest[0])
     else:
-        raise ValueError, "Illegal value for mode "+str(mode)
+        raise ValueError("Illegal value for mode "+str(mode))
 
 def hue2rgb(m1, m2, h):
     if h<0: h += 1
@@ -831,7 +833,7 @@ class toColor:
             assert 3<=len(arg)<=4, 'Can only convert 3 and 4 sequences to color'
             assert 0<=min(arg) and max(arg)<=1
             return len(arg)==3 and Color(arg[0],arg[1],arg[2]) or CMYKColor(arg[0],arg[1],arg[2],arg[3])
-        elif isinstance(arg,basestring):
+        elif isStrType(arg):
             C = cssParse(arg)
             if C: return C
             if arg in self.extraColorsNS: return self.extraColorsNS[arg]
@@ -994,7 +996,7 @@ def _enforceRGB(c):
 
 def _chooseEnforceColorSpace(enforceColorSpace):
     if enforceColorSpace is not None and not callable(enforceColorSpace):
-        if isinstance(enforceColorSpace,basestring): enforceColorSpace=enforceColorSpace.upper()
+        if isStrType(enforceColorSpace): enforceColorSpace=enforceColorSpace.upper()
         if enforceColorSpace=='CMYK':
             enforceColorSpace = _enforceCMYK
         elif enforceColorSpace=='RGB':
