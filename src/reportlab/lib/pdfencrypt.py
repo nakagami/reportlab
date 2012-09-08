@@ -215,12 +215,16 @@ def encryptionkey(password, OwnerKey, Permissions, FileId1, revision=2):
     # truncate to 32 bytes
     password = password[:32]
     # translate permissions to string, low order byte first
-    p = Permissions# + 2**32
-    permissionsString = ""
+    p = Permissions
+    permissionsString = []
     for i in range(4):
         byte = (p & 0xff)    # seems to match what iText does
         p = p>>8
-        permissionsString = permissionsString + chr(byte % 256)
+        permissionsString.append(byte % 256)
+    if sys.version_info[0] == 3:
+        permissionsString = bytes(permissionsString)
+    else:
+        permissionsString = b''.join([chr(i) for i in permissionsString])
 
     if isUnicodeType(OwnerKey):
         OwnerKey = OwnerKey.encode('utf-8')
