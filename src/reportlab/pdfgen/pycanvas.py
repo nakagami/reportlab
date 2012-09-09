@@ -303,6 +303,8 @@ class Canvas :
         elif name == "beginText" :
             return self.TextObject(self)
         else :
+            if hasattr(self._object, name):
+                return getattr(self._object, name)
             return self.Action(self, name)
 
     def _PyWrite(self, pycode) :
