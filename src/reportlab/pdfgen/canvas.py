@@ -760,7 +760,7 @@ class Canvas(textobject._PDFColorSetter):
         """
     
         self._currentPageHasImages = 1
-        from pdfimages import PDFImage
+        from reportlab.pdfgen.pdfimages import PDFImage
         img_obj = PDFImage(image, x,y, width, height)
         img_obj.drawInlineImage(self,
             preserveAspectRatio=preserveAspectRatio, 

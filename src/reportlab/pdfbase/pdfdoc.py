@@ -2089,7 +2089,7 @@ class PDFImageXObject:
     def loadImageFromA85(self,source):
         IMG=[]
         imagedata = [s.strip() for s in pdfutils.makeA85Image(source,IMG=IMG)]
-        words = string.split(imagedata[1])
+        words = imagedata[1].split()
         self.width, self.height = (int(words[1]),int(words[3]))
         self.colorSpace = {'/RGB':'DeviceRGB', '/G':'DeviceGray', '/CMYK':'DeviceCMYK'}[words[7]]
         self.bitsPerComponent = 8

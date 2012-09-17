@@ -1137,7 +1137,7 @@ class ImageAndFlowables(_Container,Flowable):
                 return W, availHeight, F[:i],F[i:]
             H += h
             if H>availHeight:
-                from paragraph import Paragraph
+                from reportlab.platypus.paragraph import Paragraph
                 aH = availHeight-(H-h)
                 if isinstance(f,(Paragraph,Preformatted)):
                     leading = f.style.leading
