@@ -665,7 +665,10 @@ class ImageReader(object):
                     palette = palette.palette
                 except:
                     palette = palette.data
-                return map(ord, palette[transparency:transparency+3])
+                if sys.version_info[0] == 3:
+                    return palette[transparency:transparency+3]
+                else:
+                    return [ord(c) for c in palette[transparency:transparency+3]]
             else:
                 return None
 
