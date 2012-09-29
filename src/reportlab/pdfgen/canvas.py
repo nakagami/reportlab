@@ -839,6 +839,8 @@ class Canvas(textobject._PDFColorSetter):
                 mdata = smask.getRGBData()
             else:
                 mdata = str(mask)
+            if isUnicodeType(mdata):
+                mdata = mdata.encode('utf-8')
             name = hashlib.md5(rawdata+mdata).hexdigest()
         else:
             #filename, use it
