@@ -474,7 +474,7 @@ class CondPageBreak(Spacer):
         if availHeight<self.height:
             f = self._doctemplateAttr('frame')
             if not f: return availWidth, availHeight
-            from doctemplate import FrameBreak
+            from reportlab.platypus.doctemplate import FrameBreak
             f.add_generated_content(FrameBreak)
         return 0, 0
 
