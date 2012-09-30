@@ -1343,7 +1343,7 @@ class Table(Flowable):
                 #might be already colours, or convertible to colors, or
                 # None, or the str 'None'.
                 #It's very common to alternate a pale shade with None.
-                colorCycle = map(colors.toColorOrNone, arg)
+                colorCycle = [colors.toColorOrNone(c) for c in arg]
                 count = len(colorCycle)
                 rowCount = er - sr + 1
                 for i in range(rowCount):
@@ -1355,7 +1355,7 @@ class Table(Flowable):
                     y0 = y0 - h
             elif cmd == 'COLBACKGROUNDS':
                 #cycle through colours columnwise
-                colorCycle = map(colors.toColorOrNone, arg)
+                colorCycle = [colors.toColorOrNone(c) for c in arg]
                 count = len(colorCycle)
                 colCount = ec - sc + 1
                 for i in range(colCount):
