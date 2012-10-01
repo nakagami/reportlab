@@ -150,7 +150,7 @@ class SingleByteEncodingChart(CodeChartBase):
 
     def draw(self):
         self.drawLabels()
-        charList = [None] * 32 + map(chr, range(32, 256))
+        charList = [None] * 32 + [chr(i) for i in range(32, 256)]
 
         #we need to convert these to Unicode, since ReportLab
         #2.0 can only draw in Unicode.
