@@ -9,6 +9,7 @@ To be sure we can accurately represent characters in various encodings
 and fonts, we need some routines to display all those characters.
 These are defined herein.  The idea is to include flowable, drawable
 and graphic objects for single and multi-byte fonts. """
+import sys
 import string
 import codecs
 
@@ -150,7 +151,10 @@ class SingleByteEncodingChart(CodeChartBase):
 
     def draw(self):
         self.drawLabels()
-        charList = [None] * 32 + [chr(i) for i in range(32, 256)]
+        if sys.version_info[0] == 3:
+            charList = [None] * 32 + [bytes([i]) for i in range(32, 256)]
+        else:
+            charList = [None] * 32 + [chr(i) for i in range(32, 256)]
 
         #we need to convert these to Unicode, since ReportLab
         #2.0 can only draw in Unicode.

@@ -8,6 +8,7 @@ __doc__="""This module defines a very preliminary Line Plot example."""
 import string, time
 
 from reportlab.lib import colors
+from reportlab.lib.utils import isStrType
 from reportlab.lib.validators import *
 from reportlab.lib.attrmap import *
 from reportlab.graphics.shapes import Drawing, Group, Rect, Line, PolyLine, Polygon, _SetKeyWordArgs
@@ -204,10 +205,9 @@ class LinePlot(AbstractLineChart):
 
         labelFmt = self.lineLabelFormat
         labelValue = self.data[rowNo][colNo][1] ###
-
         if labelFmt is None:
             labelText = None
-        elif type(labelFmt) is StringType:
+        elif isStrType(labelFmt):
             if labelFmt == 'values':
                 labelText = self.lineLabelArray[rowNo][colNo]
             else:
