@@ -21,7 +21,7 @@ from reportlab.pdfbase import pdfutils
 from reportlab.pdfbase import pdfdoc
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfgen  import pdfgeom, pathobject, textobject
-from reportlab.lib.colors import black, _chooseEnforceColorSpace
+from reportlab.lib.colors import black, _chooseEnforceColorSpace, Color, CMYKColor, toColor
 from reportlab.lib.utils import import_zlib, ImageReader, fp_str, isSeqType, isStrType, isUnicodeType
 from reportlab.lib.boxstuff import aspectRatioFix
 
