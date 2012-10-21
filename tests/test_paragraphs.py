@@ -77,30 +77,18 @@ class ParagraphTestCase(unittest.TestCase):
                                    spaceBefore=12,
                                    spaceAfter=12)
 
+        SA(Paragraph("This is a normal paragraph. "+ randomText(), styNormal))
+        SA(Paragraph("There follows a paragraph with only \"&lt;br/&gt\"", styNormal))
+        SA(Paragraph("<br/>", styNormal))
+        SA(Paragraph("This has 12 points space before and after, set in the style. " + randomText(), stySpaced))
+        SA(Paragraph("This is normal. " + randomText(), styNormal))
+        SA(Paragraph("""<para spacebefore="12" spaceafter="12">
+              This has 12 points space before and after, set inline with
+              XML tag.  It works too.""" + randomText() + "</para",
+                        styNormal))
 
-        story.append(
-            Paragraph("This is a normal paragraph. "
-                      + randomText(), styNormal))
-        story.append(
-            Paragraph("There follows a paragraph with only \"&lt;br/&gt;\"", styNormal))
-        story.append(Paragraph("<br/>", styNormal))
-        story.append(
-            Paragraph("This has 12 points space before and after, set in the style. "
-                      + randomText(), stySpaced))
-        story.append(
-            Paragraph("This is normal. " +
-                      randomText(), styNormal))
-
-        story.append(
-            Paragraph("""<para spacebefore="12" spaceafter="12">
-            This has 12 points space before and after, set inline with
-            XML tag.  It works too.""" + randomText() + "</para",
-                      styNormal))
-
-        story.append(
-            Paragraph("This is normal. " +
-                      randomText(), styNormal))
-
+        SA(Paragraph("This is normal. " + randomText(), styNormal))
+  
         styBackground = ParagraphStyle('MyTitle',
                                        fontName='Helvetica-Bold',
                                        fontSize=24,
