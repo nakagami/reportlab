@@ -12,9 +12,35 @@ These can be constructed from several popular formats.  We also include
 - pre-built colours used in ReportLab's branding
 
 - various conversion and construction functions
+
+These tests are here because doctest cannot find them otherwise.
+>>> toColor('rgb(128,0,0)')==toColor('rgb(50%,0%,0%)')
+True
+>>> toColor('rgb(50%,0%,0%)')!=Color(0.5,0,0,1)
+True
+>>> toColor('hsl(0,100%,50%)')==toColor('rgb(255,0,0)')
+True
+>>> toColor('hsl(-120,100%,50%)')==toColor('rgb(0,0,255)')
+True
+>>> toColor('hsl(120,100%,50%)')==toColor('rgb(0,255,0)')
+True
+>>> toColor('rgba( 255,0,0,0.5)')==Color(1,0,0,0.5)
+True
+>>> toColor('cmyk(1,0,0,0 )')==CMYKColor(1,0,0,0)
+True
+>>> toColor('pcmyk( 100 , 0 , 0 , 0 )')==PCMYKColor(100,0,0,0)
+True
+>>> toColor('cmyka(1,0,0,0,0.5)')==CMYKColor(1,0,0,0,alpha=0.5)
+True
+>>> toColor('pcmyka(100,0,0,0,0.5)')==PCMYKColor(100,0,0,0,alpha=0.5)
+True
+>>> toColor('pcmyka(100,0,0,0)')
+Traceback (most recent call last):
+    ....
+ValueError: css color 'pcmyka(100,0,0,0)' has wrong number of components
 '''
 import sys
-import math
+import math, re
 from reportlab.lib.utils import fp_str, isStrType
 
 class Color:
