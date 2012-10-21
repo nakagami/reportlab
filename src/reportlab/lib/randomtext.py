@@ -353,4 +353,19 @@ def randomText(theme=STARTUP, sentences=5):
     return output
 
 if __name__=='__main__':
-    print(chomsky(5))
+    import sys
+    argv = sys.argv[1:]
+    if argv:
+        theme = argv.pop(0)
+        if argv:
+            sentences = int(argv.pop(0))
+        else:
+            sentences = 5
+        try:
+            print randomText(theme,sentences)
+        except:
+            print>>sys.stderr,"Usage: randomtext.py [theme [#sentences]]"
+            print>>sys.stderr," theme in chomsky|STARTUP|COMPUTERS|BLAH|BUZZWORD|STARTREK|PRINTING|PYTHON"
+            raise
+    else:
+        print chomsky(5)
