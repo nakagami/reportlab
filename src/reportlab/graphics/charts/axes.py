@@ -38,10 +38,12 @@ from reportlab.lib.validators import    isNumber, isNumberOrNone, isListOfString
 from reportlab.lib.attrmap import *
 from reportlab.lib import normalDate
 from reportlab.lib.utils import isSeqType
-from reportlab.graphics.shapes import Drawing, Line, PolyLine, Group, STATE_DEFAULTS, _textBoxLimits, _rotatedBoxLimits
+from reportlab.graphics.shapes import Drawing, Line, PolyLine, Rect, Group, STATE_DEFAULTS, _textBoxLimits, _rotatedBoxLimits
 from reportlab.graphics.widgetbase import Widget, TypedPropertyCollection
 from reportlab.graphics.charts.textlabels import Label
 from reportlab.graphics.charts.utils import nextRoundNumber
+from reportlab.graphics.widgets.grids import ShadedRect
+from reportlab.lib.colors import Color
 import copy
 
 
