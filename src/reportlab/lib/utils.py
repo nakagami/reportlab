@@ -503,7 +503,7 @@ def _isPILImage(im):
     if haveImages:
         try:
             return isinstance(im,Image.Image)
-        except ImportError:
+        except AttributeError:
             return False
     else:
         return False
@@ -1162,3 +1162,16 @@ def decode_label(label):
     v = pickle.loads(base64.decodestring(label))
     return v
     
+class IdentStr(str):
+    '''useful for identifying things that get split'''
+    def __new__(cls,value):
+        if isinstance(value,IdentStr):
+            inc = value.__inc
+            value = value[:-(2+len(str(inc)))]
+            inc += 1
+        else:
+            inc = 0
+        value += '[%d]' % inc
+        self = str.__new__(cls,value)
+        self.__inc = inc
+        return self
