@@ -6,7 +6,7 @@ __version__=''' $Id: shapes.py 3751 2010-07-30 09:28:28Z rgbecker $ '''
 __doc__='''Core of the graphics library - defines Drawing and Shapes'''
 
 import string, os, sys
-from math import pi, cos, sin, tan
+from math import pi, cos, sin, tan, sqrt
 from pprint import pprint
 
 from reportlab.platypus import Flowable
