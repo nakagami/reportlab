@@ -35,6 +35,10 @@ from reportlab.graphics.charts.textlabels import Label
 
 _ANGLE2BOXANCHOR={0:'w', 45:'sw', 90:'s', 135:'se', 180:'e', 225:'ne', 270:'n', 315: 'nw', -45: 'nw'}
 _ANGLE2RBOXANCHOR={0:'e', 45:'ne', 90:'n', 135:'nw', 180:'w', 225:'sw', 270:'s', 315: 'se', -45: 'se'}
+
+_ANGLELO    = 1e-7
+_ANGLEHI    = 360.0 - _ANGLELO
+
 class WedgeLabel(Label):
     def _checkDXY(self,ba):
         pass
