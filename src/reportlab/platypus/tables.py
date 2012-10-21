@@ -1,7 +1,7 @@
-#Copyright ReportLab Europe Ltd. 2000-2004
+#Copyright ReportLab Europe Ltd. 2000-2012
 #see license.txt for license details
 #history http://www.reportlab.co.uk/cgi-bin/viewcvs.cgi/public/reportlab/trunk/reportlab/platypus/tables.py
-__version__=''' $Id: tables.py 3797 2010-10-01 09:09:33Z rgbecker $ '''
+__version__=''' $Id: tables.py 3959 2012-09-27 14:39:39Z robin $ '''
 
 __doc__="""
 Tables are created by passing the constructor a tuple of column widths, a tuple of row heights and the data in
@@ -68,11 +68,10 @@ class CellStyle1(PropertySet):
             parent.copy(self)
     def copy(self, result=None):
         if result is None:
-            result = CellStyle1()
+            result = CellStyle()
         for name in dir(self):
             setattr(result, name, getattr(self, name))
         return result
-CellStyle = CellStyle1
 
 class TableStyle:
     def __init__(self, cmds=None, parent=None, **kw):
@@ -214,6 +213,9 @@ def spanFixDim(V0,V,spanCons,lim=None,FUZZ=rl_config._FUZZ):
     for x,v in M.items():
         V[x] += v
 
+class _ExpandedCellTuple(tuple):
+    pass
+
 class Table(Flowable):
     def __init__(self, data, colWidths=None, rowHeights=None, style=None,
                 repeatRows=0, repeatCols=0, splitByRow=1, emptyTableAction=None, ident=None,
@@ -338,6 +340,7 @@ class Table(Flowable):
         nr = getattr(self,'_nrows','unknown')
         nc = getattr(self,'_ncols','unknown')
         cv = getattr(self,'_cellvalues',None)
+        rh = getattr(self, '_rowHeights', None)
         if cv and 'unknown' not in (nr,nc):
             b = 0
             for i in range(nr):
@@ -359,12 +362,44 @@ class Table(Flowable):
                         if maxLen: vx = vx[:maxLen]
                     if b: break
                 if b: break
+        if rh:  #find tallest row, it's of great interest'
+            tallest = '(tallest row %d)' % int(max(rh))
+        else:
+            tallest = ''
         if vx:
             vx = ' with cell(%d,%d) containing\n%s' % (ix,jx,repr(vx))
         else:
             vx = '...'
 
-        return "<%s@0x%8.8X %s rows x %s cols>%s" % (self.__class__.__name__, id(self), nr, nc, vx)
+        return "<%s@0x%8.8X %s rows x %s cols%s>%s" % (self.__class__.__name__, id(self), nr, nc, tallest, vx)
+
+    def _cellListIter(self,C,aW,aH):
+        canv = getattr(self,'canv',None)
+        for c in C:
+            if getattr(c,'__split_only__',None):
+                for d in c.splitOn(canv,aW,aH):
+                    yield d
+            else:
+                yield c
+
+    def _cellListProcess(self,C,aW,aH):
+        if not isinstance(C,_ExpandedCellTuple):
+            frame = None
+            R = [].append
+            for c in self._cellListIter(C,aW,aH):
+                if isinstance(c,Indenter):
+                    if not frame:
+                        frame = CellFrame(_leftExtraIndent=0,_rightExtraIndent=0)
+                    c.frameAction(frame)
+                    if frame._leftExtraIndent<1e-8 and frame._rightExtraIndent<1e-8:
+                        frame = None
+                    continue
+                if frame:
+                    R(LIIndenter(c,leftIndent=frame._leftExtraIndent,rightIndent=frame._rightExtraIndent))
+                else:
+                    R(c)
+            C = _ExpandedCellTuple(R.__self__)
+        return C
 
     def _listCellGeom(self, V,w,s,W=None,H=None,aH=72000):
         if not V: return 0,0
@@ -441,7 +476,10 @@ class Table(Flowable):
                 W[j] = w
 
             if spanCons:
-                spanFixDim(W0,W,spanCons)
+                try:
+                    spanFixDim(W0,W,spanCons)
+                except:
+                    annotateException('\nspanning problem in %s\nW0=%r W=%r\nspanCons=%r' % (self.identity(),W0,W,spanCons))
 
         self._colWidths = W
         width = 0
@@ -473,7 +511,13 @@ class Table(Flowable):
                 if isinstance(w,(float,int)): return w
             except AttributeError:
                 pass
-        v = (v is not None and str(v) or '').split("\n")
+        if v is None: 
+            return 0
+        else:
+            try:
+                v = str(v).split("\n")
+            except:
+                return 0
         fontName = s.fontname
         fontSize = s.fontsize
         return max([stringWidth(x,fontName,fontSize) for x in v])
@@ -517,6 +561,8 @@ class Table(Flowable):
                     else:
                         if isinstance(v,(tuple,list,Flowable)):
                             if isinstance(v,Flowable): v = (v,)
+                            else: v = flatten(v)
+                            v = V[j] = self._cellListProcess(v,w,None)
                             if w is None and not self._canGetWidth(v):
                                 raise ValueError("Flowable %s in cell(%d,%d) can't have auto width in\n%s" % (v[0].identity(30),i,j,self.identity(30)))
                             if canv: canv._fontname, canv._fontsize, canv._leading = s.fontname, s.fontsize, s.leading or 1.2*s.fontsize
@@ -547,18 +593,25 @@ class Table(Flowable):
                     hmax = i
                     height = sum(H[:i])
                     if height > availHeight:
-                        break
+                        #we can terminate if all spans are complete in H[:i]
+                        if spanCons:
+                            msr = max([x[1] for x in spanCons.keys()])  #RS=[endrowspan,.....]
+                            if hmax>=msr:
+                                break
             if None not in H: hmax = lim
 
             if spanCons:
-                spanFixDim(H0,H,spanCons,lim=hmax)
+                try:
+                    spanFixDim(H0,H,spanCons,lim=hmax)
+                except:
+                    annotateException('\nspanning problem in %s hmax=%s lim=%s avail=%s x %s\nH0=%r H=%r\nspanCons=%r' % (self.identity(),hmax,lim,availWidth,availHeight,H0,H,spanCons))
 
         height = self._height = sum(H[:hmax])
         self._rowpositions = [height]    # index 0 is actually topline; we skip when processing cells
         for h in H[:hmax]:
             height -= h
             self._rowpositions.append(height)
-        assert abs(height)<1e-8, 'Internal height error'
+        assert abs(height)<1e-8, '!!!!!%s\ninternal height error height=%r hmax=%d Sum(H[:%d])=%r\nH=%r\nrowPositions=%r' % (self.identity(),height,hmax,hmax,self._height,H[:hmax],self._rowpositions)
         self._hmax = hmax
 
     def _calc(self, availWidth, availHeight):
@@ -593,6 +646,23 @@ class Table(Flowable):
         if self._spanCmds:
             #now work out the actual rect for each spanned cell from the underlying grid
             self._calcSpanRects()
+
+    def _culprit(self):
+        """Return a string describing the tallest element.
+        
+        Usually this is what causes tables to fail to split.  Currently
+        tables are the only items to have a '_culprit' method. Doctemplate
+        checks for it.
+        """
+        rh = self._rowHeights
+        tallest = max(rh)
+        rowNum = rh.index(tallest)
+        #rowNum of limited interest as usually it's a split one
+        #and we see row #1.  Text might be a nice addition.
+        
+        return 'tallest cell %0.1f points' % tallest
+        
+        
 
     def _hasVariWidthElements(self, upToRow=None):
         """Check for flowables in table cells and warn up front.
@@ -1115,7 +1185,6 @@ class Table(Flowable):
 
     def wrap(self, availWidth, availHeight):
         self._calc(availWidth, availHeight)
-        #nice and easy, since they are predetermined size
         self.availWidth = availWidth
         return (self._width, self._height)
 
@@ -1171,10 +1240,12 @@ class Table(Flowable):
         data = self._cellvalues
 
         #we're going to split into two superRows
-        #R0 = slelf.__class__( data[:n], self._argW, self._argH[:n],
+        ident = self.ident
+        if ident: ident = IdentStr(ident)
         R0 = self.__class__( data[:n], colWidths=self._colWidths, rowHeights=self._argH[:n],
                 repeatRows=repeatRows, repeatCols=repeatCols,
-                splitByRow=splitByRow, normalizedData=1, cellStyles=self._cellStyles[:n])
+                splitByRow=splitByRow, normalizedData=1, cellStyles=self._cellStyles[:n],
+                ident=ident)
 
         #copy the commands
 
@@ -1228,13 +1299,16 @@ class Table(Flowable):
         R0._cr_0(n,self._spanCmds)
         R0._cr_0(n,self._nosplitCmds)
 
+        if ident: ident = IdentStr(ident)
         if repeatRows:
             #R1 = slelf.__class__(data[:repeatRows]+data[n:],self._argW,
             R1 = self.__class__(data[:repeatRows]+data[n:],colWidths=self._colWidths,
                     rowHeights=self._argH[:repeatRows]+self._argH[n:],
                     repeatRows=repeatRows, repeatCols=repeatCols,
                     splitByRow=splitByRow, normalizedData=1,
-                    cellStyles=self._cellStyles[:repeatRows]+self._cellStyles[n:])
+                    cellStyles=self._cellStyles[:repeatRows]+self._cellStyles[n:],
+                    ident=ident,
+                    )
             R1._cr_1_1(n,repeatRows,A)
             R1._cr_1_1(n,repeatRows,self._bkgrndcmds)
             R1._cr_1_1(n,repeatRows,self._spanCmds)
@@ -1243,7 +1317,9 @@ class Table(Flowable):
             #R1 = slelf.__class__(data[n:], self._argW, self._argH[n:],
             R1 = self.__class__(data[n:], colWidths=self._colWidths, rowHeights=self._argH[n:],
                     repeatRows=repeatRows, repeatCols=repeatCols,
-                    splitByRow=splitByRow, normalizedData=1, cellStyles=self._cellStyles[n:])
+                    splitByRow=splitByRow, normalizedData=1, cellStyles=self._cellStyles[n:],
+                    ident=ident,
+                    )
             R1._cr_1_0(n,A)
             R1._cr_1_0(n,self._bkgrndcmds)
             R1._cr_1_0(n,self._spanCmds)

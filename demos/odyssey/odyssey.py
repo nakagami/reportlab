@@ -1,6 +1,6 @@
-#Copyright ReportLab Europe Ltd. 2000-2008
+#Copyright ReportLab Europe Ltd. 2000-2012
 #see license.txt for license details
-__version__=''' $Id: odyssey.py 3271 2008-09-04 12:45:58Z rgbecker $ '''
+__version__=''' $Id: odyssey.py 3959 2012-09-27 14:39:39Z robin $ '''
 ___doc__=''
 #odyssey.py
 #

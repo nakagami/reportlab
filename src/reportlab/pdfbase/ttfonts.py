@@ -1,6 +1,6 @@
-#Copyright ReportLab Europe Ltd. 2000-2009
+#Copyright ReportLab Europe Ltd. 2000-2012
 #see license.txt for license details
-__version__ = '$Id: ttfonts.py 3702 2010-04-14 17:13:41Z rgbecker $'
+__version__ = '$Id: ttfonts.py 3959 2012-09-27 14:39:39Z robin $'
 __doc__="""TrueType font support
 
 This defines classes to represent TrueType fonts.  They know how to calculate

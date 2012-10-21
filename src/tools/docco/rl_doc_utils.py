@@ -1,8 +1,8 @@
 #!/bin/env python
-#Copyright ReportLab Europe Ltd. 2000-2004
+#Copyright ReportLab Europe Ltd. 2000-2012
 #see license.txt for license details
 #history http://www.reportlab.co.uk/cgi-bin/viewcvs.cgi/public/reportlab/trunk/reportlab/tools/docco/rl_doc_utils.py
-__version__=''' $Id: rl_doc_utils.py 3372 2009-01-15 16:59:35Z jonas $ '''
+__version__=''' $Id: rl_doc_utils.py 3959 2012-09-27 14:39:39Z robin $ '''
 
 
 __doc__ = """
@@ -25,6 +25,7 @@ from reportlab.platypus import figures
 from reportlab.platypus import Paragraph, Spacer, Preformatted,\
             PageBreak, CondPageBreak, Flowable, Table, TableStyle, \
             NextPageTemplate, KeepTogether, Image, XPreformatted
+from reportlab.platypus.xpreformatted import PythonPreformatted
 from reportlab.lib.styles import ParagraphStyle
 from reportlab.lib import colors
 from reportlab.lib.sequencer import getSequencer
@@ -139,7 +140,7 @@ def bullet(text):
 
 def eg(text,before=0.1,after=0):
     space(before)
-    disc(text, klass=Preformatted, style=exampletextstyle)
+    disc(text, klass=PythonPreformatted, style=exampletextstyle)
     space(after)
 
 def space(inches=1./6):

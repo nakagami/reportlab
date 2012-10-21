@@ -1,7 +1,7 @@
-#Copyright ReportLab Europe Ltd. 2000-2004
+#Copyright ReportLab Europe Ltd. 2000-2012
 #see license.txt for license details
 #history http://www.reportlab.co.uk/cgi-bin/viewcvs.cgi/public/reportlab/trunk/reportlab/graphics/widgetbase.py
-__version__=''' $Id: widgetbase.py 3742 2010-07-06 16:19:30Z rgbecker $ '''
+__version__=''' $Id: widgetbase.py 3959 2012-09-27 14:39:39Z robin $ '''
 __doc__='''Base class for user-defined graphical widgets'''
 
 import string

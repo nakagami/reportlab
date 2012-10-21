@@ -1,6 +1,6 @@
-#copyright ReportLab Europe Limited. 2000-2006
+#copyright ReportLab Europe Limited. 2000-2012
 #see license.txt for license details
-__version__=''' $Id: widgets.py 3764 2010-09-06 13:24:45Z juraj $ '''
+__version__=''' $Id: widgets.py 3959 2012-09-27 14:39:39Z robin $ '''
 __all__= (
         'BarcodeI2of5',
         'BarcodeCode128',

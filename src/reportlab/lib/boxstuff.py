@@ -1,6 +1,6 @@
-#Copyright ReportLab Europe Ltd. 2000-2006
+#Copyright ReportLab Europe Ltd. 2000-2012
 #see license.txt for license details
-__version__=''' $Id: boxstuff.py 3408 2009-01-28 12:25:33Z rptlab $ '''
+__version__=''' $Id: boxstuff.py 3959 2012-09-27 14:39:39Z robin $ '''
 __doc__='''Utility functions to position and resize boxes within boxes'''
 
 def aspectRatioFix(preserve,anchor,x,y,width,height,imWidth,imHeight):

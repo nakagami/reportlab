@@ -1,7 +1,7 @@
-#Copyright ReportLab Europe Ltd. 2000-2004
+#Copyright ReportLab Europe Ltd. 2000-2012
 #see license.txt for license details
 #history http://www.reportlab.co.uk/cgi-bin/viewcvs.cgi/public/reportlab/trunk/reportlab/platypus/xpreformatted.py
-__version__=''' $Id: xpreformatted.py 3768 2010-09-07 14:24:27Z rgbecker $ '''
+__version__=''' $Id: xpreformatted.py 3959 2012-09-27 14:39:39Z robin $ '''
 __doc__='''A 'rich preformatted text' widget allowing internal markup'''
 import string
 from reportlab.lib import PyFontify
@@ -192,6 +192,8 @@ class XPreformatted(Paragraph):
             return ParaLines(kind=1, lines=lines)
 
         return lines
+
+    breakLinesCJK = breakLines  #TODO fixme fixme fixme
 
     # we need this her to get the right splitter
     def _get_split_blParaFunc(self):

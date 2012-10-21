@@ -1,8 +1,8 @@
-#Copyright ReportLab Europe Ltd. 2000-2004
+#Copyright ReportLab Europe Ltd. 2000-2012
 #see license.txt for license details
 #history http://www.reportlab.co.uk/cgi-bin/viewcvs.cgi/public/reportlab/trunk/reportlab/docs/userguide/ch6_tables.py
 from tools.docco.rl_doc_utils import *
-from reportlab.platypus import Image
+from reportlab.platypus import Image,ListFlowable, ListItem
 import reportlab
 
 heading1("Tables and TableStyles")
@@ -397,16 +397,41 @@ The value of i is 1
 """)
 
 heading1("""Other Useful $Flowables$""")
-heading2("""$Preformatted(text, style, bulletText = None, dedent=0)$""")
+heading2("""$Preformatted(text, style, bulletText=None, dedent=0, maxLineLength=None, splitChars=None, newLineChars=None)$""")
 disc("""
 Creates a preformatted paragraph which does no wrapping, line splitting or other manipulations.
 No $XML$ style tags are taken account of in the text.
 If dedent is non zero $dedent$ common leading
 spaces will be removed from the front of each line.
 """)
-heading2("""$XPreformatted(text, style, bulletText = None, dedent=0, frags=None)$""")
+heading3("Defining a maximum line length")
 disc("""
-This is a non rearranging form of the $Paragraph$ class; $XML$ tags are allowed in
+You can use the property $maxLineLength$ to define a maximum line length. If a line length exceeds this maximum value, the line will be automatically splitted.
+""")
+disc("""
+The line will be split on any single character defined in $splitChars$. If no value is provided for this property, the line will be split on any of the following standard characters: space, colon, full stop, semi-colon, coma, hyphen, forward slash, back slash, left parenthesis, left square bracket and left curly brace
+""")
+disc("""
+Characters can be automatically inserted at the beginning of each line that has been created. You can set the property $newLineChars$ to the characters you want to use. 
+""")
+EmbeddedCode("""
+from reportlab.lib.styles import getSampleStyleSheet
+stylesheet=getSampleStyleSheet()
+normalStyle = stylesheet['Code']
+text='''
+class XPreformatted(Paragraph):
+    def __init__(self, text, style, bulletText = None, frags=None, caseSensitive=1):
+        self.caseSensitive = caseSensitive
+        if maximumLineLength and text:
+            text = self.stopLine(text, maximumLineLength, splitCharacters)
+        cleaner = lambda text, dedent=dedent: string.join(_dedenter(text or '',dedent),'')
+        self._setup(text, style, bulletText, frags, cleaner)
+'''
+t=Preformatted(text,normalStyle,maxLineLength=60, newLineChars='> ')
+""")
+heading2("""$XPreformatted(text, style, bulletText=None, dedent=0, frags=None)$""")
+disc("""
+This is a non rearranging form of the $Paragraph$ class; XML tags are allowed in
 $text$ and have the same meanings as for the $Paragraph$ class.
 As for $Preformatted$, if dedent is non zero $dedent$ common leading
 spaces will be removed from the front of each line.
@@ -414,7 +439,7 @@ spaces will be removed from the front of each line.
 EmbeddedCode("""
 from reportlab.lib.styles import getSampleStyleSheet
 stylesheet=getSampleStyleSheet()
-normalStyle = stylesheet['Normal']
+normalStyle = stylesheet['Code']
 text='''
 
    This is a non rearranging form of the <b>Paragraph</b> class;
@@ -429,6 +454,7 @@ text='''
 '''
 t=XPreformatted(text,normalStyle,dedent=3)
 """)
+
 heading2("""$Image(filename, width=None, height=None)$""")
 disc("""Create a flowable which will contain the image defined by the data in file $filename$.
 The default <b>PDF</b> image type <i>jpeg</i> is supported and if the <b>PIL</b> extension to <b>Python</b>
@@ -437,7 +463,7 @@ then they determine the dimension of the displayed image in <i>points</i>. If ei
 not specified (or specified as $None$) then the corresponding pixel dimension of the image is assumed
 to be in <i>points</i> and used.
 """)
-I=os.path.join(os.path.dirname(reportlab.__file__),'docs','images','lj8100.jpg')
+I="../images/lj8100.jpg"
 eg("""
 Image("lj8100.jpg")
 """,after=0.1)
@@ -655,3 +681,43 @@ eg("""
 disc("""
 This indexes the terms "comma (,)", "," and "...".
 """)
+
+heading2("""$ListFlowable(),ListItem()$""")
+disc("""
+Use these classes to make ordered and unordered lists.  Lists can be nested.
+""")
+
+disc("""
+$ListFlowable()$ will create an ordered list, which can contain any flowable.  The class has a number of parameters to change font, colour, size, style and position of list numbers, or of bullets in unordered lists.  The type of numbering can also be set to use lower or upper case letters ('A,B,C' etc.) or Roman numerals (capitals or lowercase) using the bulletType property.  To change the list to an unordered type, set bulletType='bullet'.
+""")
+
+disc("""
+Items within a $ListFlowable()$ list can be changed from their default appearance by wrapping them in a $ListItem()$ class and setting its properties.
+""")
+
+disc("""
+The following will create an ordered list, and set the third item to an unordered sublist.
+""")
+
+EmbeddedCode("""
+from reportlab.platypus import ListFlowable, ListItem
+from reportlab.lib.styles import getSampleStyleSheet
+styles = getSampleStyleSheet()
+style = styles["Normal"]
+t = ListFlowable(
+[
+Paragraph("Item no.1", style),
+ListItem(Paragraph("Item no. 2", style),bulletColor="green",value=7),
+ListFlowable(
+                [
+                Paragraph("sublist item 1", style),
+                ListItem(Paragraph('sublist item 2', style),bulletColor='red',value='square')
+                ],
+                bulletType='bullet',
+                start='square',
+                ),
+Paragraph("Item no.4", style),
+],
+bulletType='i'
+)
+             """)

@@ -1,6 +1,6 @@
-#Copyright ReportLab Europe Ltd. 2000-2008
+#Copyright ReportLab Europe Ltd. 2000-2012
 #see license.txt for license details
-__version__=''' $Id: graph_widgets.py 3375 2009-01-16 18:23:19Z jonas $ '''
+__version__=''' $Id: graph_widgets.py 3959 2012-09-27 14:39:39Z robin $ '''
 from tools.docco.rl_doc_utils import *
 from reportlab.graphics.shapes import *
 from reportlab.graphics.widgets import signsandsymbols

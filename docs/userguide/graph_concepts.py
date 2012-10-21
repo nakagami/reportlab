@@ -1,6 +1,6 @@
-#Copyright ReportLab Europe Ltd. 2000-2008
+#Copyright ReportLab Europe Ltd. 2000-2012
 #see license.txt for license details
-__version__=''' $Id: graph_concepts.py 3401 2009-01-23 17:41:45Z jonas $ '''
+__version__=''' $Id: graph_concepts.py 3959 2012-09-27 14:39:39Z robin $ '''
 from tools.docco.rl_doc_utils import *
 
 heading2("General Concepts")

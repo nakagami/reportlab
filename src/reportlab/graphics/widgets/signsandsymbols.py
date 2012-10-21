@@ -1,11 +1,11 @@
-#Copyright ReportLab Europe Ltd. 2000-2004
+#Copyright ReportLab Europe Ltd. 2000-2012
 #see license.txt for license details
 #history http://www.reportlab.co.uk/cgi-bin/viewcvs.cgi/public/reportlab/trunk/reportlab/graphics/widgets/signsandsymbols.py
 # signsandsymbols.py
 # A collection of new widgets
 # author: John Precedo (johnp@reportlab.com)
 
-__version__=''' $Id: signsandsymbols.py 3632 2010-01-14 10:25:06Z rgbecker $ '''
+__version__=''' $Id: signsandsymbols.py 3959 2012-09-27 14:39:39Z robin $ '''
 __doc__="""This file is a collection of widgets to produce some common signs and symbols.
 
 Widgets include:

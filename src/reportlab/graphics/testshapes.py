@@ -1,5 +1,5 @@
 #!/bin/env python
-#Copyright ReportLab Europe Ltd. 2000-2004
+#Copyright ReportLab Europe Ltd. 2000-2012
 #see license.txt for license details
 #history http://www.reportlab.co.uk/cgi-bin/viewcvs.cgi/public/reportlab/trunk/reportlab/graphics/testshapes.py
 
@@ -60,7 +60,11 @@ def _setup():
                         F.append(name)
                     except:
                         pass
-_setup()
+    return F
+
+for f in _setup():
+    if f not in _FONTS:
+        _FONTS.append(f)
 
 #########################################################
 #
@@ -439,8 +443,8 @@ def getDrawing13():
                     String(10, y, text, fontName=fontName, fontSize = fontSize)))
             y -= 5
         return maxx, h-y+gap, D
-    maxx, maxy, D = drawit(F)
-    if maxx>400 or maxy>200: _,_,D = drawit(F,maxx,maxy)
+    maxx, maxy, D = drawit(_FONTS)
+    if maxx>400 or maxy>200: _,_,D = drawit(_FONTS,maxx,maxy)
     return D
 
 ##def getDrawing14():

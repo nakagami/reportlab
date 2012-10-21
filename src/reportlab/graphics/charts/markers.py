@@ -1,8 +1,8 @@
-#Copyright ReportLab Europe Ltd. 2000-2004
+#Copyright ReportLab Europe Ltd. 2000-2012
 #see license.txt for license details
 #history http://www.reportlab.co.uk/cgi-bin/viewcvs.cgi/public/reportlab/trunk/reportlab/graphics/charts/markers.py
 
-__version__=''' $Id: markers.py 3345 2008-12-12 17:55:22Z damian $ '''
+__version__=''' $Id: markers.py 3959 2012-09-27 14:39:39Z robin $ '''
 __doc__="""This modules defines a collection of markers used in charts.
 
 The make* functions return a simple shape or a widget as for

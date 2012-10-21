@@ -1,7 +1,7 @@
-#Copyright ReportLab Europe Ltd. 2000-2010
+#Copyright ReportLab Europe Ltd. 2000-2012
 #see license.txt for license details
 #history http://www.reportlab.co.uk/cgi-bin/viewcvs.cgi/public/reportlab/trunk/reportlab/lib/abag.py
-__version__=''' $Id: abag.py 3623 2009-12-17 16:18:34Z andy $ '''
+__version__=''' $Id: abag.py 3959 2012-09-27 14:39:39Z robin $ '''
 __doc__='''Data structure to hold a collection of attributes, used by styles.'''
 class ABag:
     """

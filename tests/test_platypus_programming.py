@@ -1,6 +1,6 @@
-#Copyright ReportLab Europe Ltd. 2000-2008
+#Copyright ReportLab Europe Ltd. 2000-2012
 #see license.txt for license details
-__version__=''' $Id: test_platypus_programming.py 3310 2008-10-14 10:07:56Z rgbecker $ '''
+__version__=''' $Id: test_platypus_programming.py 3959 2012-09-27 14:39:39Z robin $ '''
 
 #tests and documents Page Layout API
 __doc__="""Tests low level programming of doc templates

@@ -1,6 +1,6 @@
-#copyright ReportLab Inc. 2000-2006
+#copyright ReportLab Inc. 2000-2012
 #see license.txt for license details
-__version__=''' $Id: usps4s.py 2966 2006-08-31 15:20:29Z rgbecker $ '''
+__version__=''' $Id: usps4s.py 3959 2012-09-27 14:39:39Z robin $ '''
 __all__ = ('USPS_4State',)
 
 from reportlab.lib.colors import black

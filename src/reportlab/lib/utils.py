@@ -1,7 +1,7 @@
-#Copyright ReportLab Europe Ltd. 2000-2006
+#Copyright ReportLab Europe Ltd. 2000-2012
 #see license.txt for license details
 # $URI:$
-__version__=''' $Id: utils.py 3771 2010-09-08 13:23:56Z rgbecker $ '''
+__version__=''' $Id: utils.py 3959 2012-09-27 14:39:39Z robin $ '''
 __doc__='''Gazillions of miscellaneous internal utility functions'''
 
 import os, sys, imp, time
@@ -472,14 +472,7 @@ def rl_getmtime(pn,os_path_isfile=os.path.isfile,os_path_normpath=os.path.normpa
         return os_path_getmtime(pn)
     s = e[5]
     d = e[6]
-    y = ((d>>9)&0x7f)+1980
-    m = (d>>5)&0xf
-    d &= 0x1f
-    h = (s>>11)&0xf
-    m = (s>>5)&0x3f
-    s &= 0x1f
-    s <<= 1
-    return time_mktime((y,m,d,h,m,s,0,0,0))
+    return time_mktime((((d>>9)&0x7f)+1980,(d>>5)&0xf,d&0x1f,(s>>11)&0x1f,(s>>5)&0x3f,(s&0x1f)<<1,0,0,0))
 
 def rl_get_module(name,dir):
     if name in sys.modules:
@@ -571,7 +564,7 @@ class ImageReader(object):
                     try:
                         self._width,self._height,c=readJPEGInfo(self.fp)
                     except:
-                        raise RuntimeError('Imaging Library not available, unable to import bitmaps only jpegs')
+                        annotateException('\nImaging Library not available, unable to import bitmaps only jpegs\nfileName=%r identity=%s'%(fileName,self.identity()))
                     self.jpeg_fh = self._jpeg_fh
                     self._data = self.fp.read()
                     self._dataA=None

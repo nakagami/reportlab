@@ -1,6 +1,6 @@
-#Copyright ReportLab Europe Ltd. 2000-2010
+#Copyright ReportLab Europe Ltd. 2000-2012
 #see license.txt for license details
-__version__=''' $Id: axes.py 3748 2010-07-27 09:36:33Z rgbecker $ '''
+__version__=''' $Id: axes.py 3959 2012-09-27 14:39:39Z robin $ '''
 __doc__="""Collection of axes for charts.
 
 The current collection comprises axes for charts using cartesian
@@ -84,8 +84,8 @@ def _allInt(values):
 class AxisLineAnnotation:
     '''Create a grid like line using the given user value to draw the line
     kwds may contain
-    startOffset offset from the default grid start position
-    endOffset   offset from the default grid end position
+    startOffset if true v is offset from the default grid start position
+    endOffset   if true v is offset from the default grid end position
     scaleValue  True/not given --> scale the value
                 otherwise use the absolute value
     lo          lowest coordinate to draw default 0
@@ -101,10 +101,14 @@ class AxisLineAnnotation:
     def __call__(self,axis):
         kwds = self._kwds.copy()
         scaleValue = kwds.pop('scaleValue',True)
+        endOffset = kwds.pop('endOffset',False)
+        startOffset = kwds.pop('endOffset',False)
         if axis.isYAxis:
             offs = axis._x
+            d0 = axis._y
         else:
             offs = axis._y
+            d0 = axis._x
         s = kwds.pop('start',None)
         e = kwds.pop('end',None)
         if s is None or e is None:
@@ -117,15 +121,19 @@ class AxisLineAnnotation:
             else:
                 if s is None: s = 0
                 if e is None: e = 0
-        hi = kwds.pop('hi',axis._length)
-        lo = kwds.pop('lo',0)
+        hi = kwds.pop('hi',axis._length)+d0
+        lo = kwds.pop('lo',0)+d0
         lo,hi=min(lo,hi),max(lo,hi)
         drawAtLimit = kwds.pop('drawAtLimit',False)
+        oaglp = axis._get_line_pos
         if not scaleValue:
-            oaglp = axis._get_line_pos
             axis._get_line_pos = lambda x: x
         try:
             v = self._v
+            if endOffset:
+                v = v + hi
+            elif startOffset:
+                v = v + lo
             func = axis._getLineFunc(s-offs,e-offs,kwds.pop('parent',None))
             if not hasattr(axis,'_tickValues'):
                 axis._pseudo_configure()
@@ -141,9 +149,77 @@ class AxisLineAnnotation:
             for k,v in kwds.iteritems():
                 setattr(L,k,v)
         finally:
-            if not scaleValue:
-                axis._get_line_pos = oaglp
+            axis._get_line_pos = oaglp
         return L
+
+class AxisBackgroundAnnotation:
+    '''Create a set of coloured bars on the background of a chart using axis ticks as the bar borders
+    colors is a set of colors to use for the background bars. A colour of None is just a skip.
+    Special effects if you pass a rect or Shaded rect instead.
+    '''
+    def __init__(self,colors,**kwds):
+        self._colors = colors
+        self._kwds = kwds
+
+    def __call__(self,axis):
+        colors = self._colors
+        if not colors: return
+        kwds = self._kwds.copy()
+        isYAxis = axis.isYAxis
+        if isYAxis:
+            offs = axis._x
+            d0 = axis._y
+        else:
+            offs = axis._y
+            d0 = axis._x
+        s = kwds.pop('start',None)
+        e = kwds.pop('end',None)
+        if s is None or e is None:
+            dim = getattr(getattr(axis,'joinAxis',None),'getGridDims',None)
+            if dim and hasattr(dim,'__call__'):
+                dim = dim()
+            if dim:
+                if s is None: s = dim[0]
+                if e is None: e = dim[1]
+            else:
+                if s is None: s = 0
+                if e is None: e = 0
+        if not hasattr(axis,'_tickValues'):
+            axis._pseudo_configure()
+        tv = getattr(axis,'_tickValues',None)
+        if not tv: return
+        G = Group()
+        ncolors = len(colors)
+        v0 = axis._get_line_pos(tv[0])
+        for i in xrange(1,len(tv)):
+            v1 = axis._get_line_pos(tv[i])
+            c = colors[(i-1)%ncolors]
+            if c:
+                if isYAxis:
+                    y = v0
+                    x = s
+                    height = v1-v0
+                    width = e-s
+                else:
+                    x = v0
+                    y = s
+                    width = v1-v0
+                    height = e-s
+                if isinstance(c,Color):
+                    r = Rect(x,y,width,height,fillColor=c,strokeColor=None)
+                elif isinstance(c,Rect):
+                    r = Rect(x,y,width,height)
+                    for k in c.__dict__:
+                        if k not in ('x','y','width','height'):
+                            setattr(r,k,getattr(c,k))
+                elif isinstance(c,ShadedRect):
+                    r = ShadedRect(x=x,y=y,width=width,height=height)
+                    for k in c.__dict__:
+                        if k not in ('x','y','width','height'):
+                            setattr(r,k,getattr(c,k))
+                G.add(r)
+            v0 = v1
+        return G
 
 class TickLU:
     '''lookup special cases for tick values'''
@@ -383,6 +459,7 @@ class CategoryAxis(_AxisG):
         annotations = AttrMapValue(None,desc='list of annotations'),
         loLLen = AttrMapValue(isNumber, desc='extra line length before start of the axis'),
         hiLLen = AttrMapValue(isNumber, desc='extra line length after end of the axis'),
+        skipGrid = AttrMapValue(OneOf('none','top','both','bottom'),"grid lines to skip top bottom both none"),
         )
 
     def __init__(self):
@@ -620,31 +697,24 @@ class XCategoryAxis(_XTicks,CategoryAxis):
 
     def joinToAxis(self, yAxis, mode='bottom', pos=None):
         "Join with y-axis using some mode."
-
         _assertYAxis(yAxis)
         if mode == 'bottom':
-            self._x = yAxis._x
             self._y = yAxis._y
         elif mode == 'top':
-            self._x = yAxis._x
             self._y = yAxis._y + yAxis._length
         elif mode == 'value':
-            self._x = yAxis._x
             self._y = yAxis.scale(pos)
         elif mode == 'points':
-            self._x = yAxis._x
             self._y = pos
 
     def _joinToAxis(self):
         ja = self.joinAxis
         if ja:
             jam = self.joinAxisMode
-            jap = self.joinAxisPos
-            jta = self.joinToAxis
             if jam in ('bottom', 'top'):
-                jta(ja, mode=jam)
+                self.joinToAxis(ja, mode=jam)
             elif jam in ('value', 'points'):
-                jta(ja, mode=jam, pos=jap)
+                self.joinToAxis(ja, mode=jam, pos=self.joinAxisPos)
 
     def scale(self, idx):
         """returns the x position and width in drawing units of the slice"""
@@ -734,30 +804,23 @@ class YCategoryAxis(_YTicks,CategoryAxis):
         "Join with x-axis using some mode."
 
         _assertXAxis(xAxis)
-
         if mode == 'left':
             self._x = xAxis._x * 1.0
-            self._y = xAxis._y * 1.0
         elif mode == 'right':
             self._x = (xAxis._x + xAxis._length) * 1.0
-            self._y = xAxis._y * 1.0
         elif mode == 'value':
             self._x = xAxis.scale(pos) * 1.0
-            self._y = xAxis._y * 1.0
         elif mode == 'points':
             self._x = pos * 1.0
-            self._y = xAxis._y * 1.0
 
     def _joinToAxis(self):
         ja = self.joinAxis
         if ja:
             jam = self.joinAxisMode
-            jap = self.joinAxisPos
-            jta = self.joinToAxis
             if jam in ('left', 'right'):
-                jta(ja, mode=jam)
+                self.joinToAxis(ja, mode=jam)
             elif jam in ('value', 'points'):
-                jta(ja, mode=jam, pos=jap)
+                self.joinToAxis(ja, mode=jam, pos=self.joinAxisPos)
 
     def scale(self, idx):
         "Returns the y position and width in drawing units of the slice."
@@ -880,6 +943,7 @@ class ValueAxis(_AxisG):
         subGridStart = AttrMapValue(isNumberOrNone, desc='Start of grid lines wrt axis origin'),
         subGridEnd = AttrMapValue(isNumberOrNone, desc='End of grid lines wrt axis origin'),
         keepTickLabelsInside = AttrMapValue(isBoolean, desc='Ensure tick labels do not project beyond bounds of axis if true'),
+        skipGrid = AttrMapValue(OneOf('none','top','both','bottom'),"grid lines to skip top bottom both none"),
         )
 
     def __init__(self,**kw):
@@ -1385,28 +1449,22 @@ class XValueAxis(_XTicks,ValueAxis):
         "Join with y-axis using some mode."
         _assertYAxis(yAxis)
         if mode == 'bottom':
-            self._x = yAxis._x * 1.0
             self._y = yAxis._y * 1.0
         elif mode == 'top':
-            self._x = yAxis._x * 1.0
             self._y = (yAxis._y + yAxis._length) * 1.0
         elif mode == 'value':
-            self._x = yAxis._x * 1.0
             self._y = yAxis.scale(pos) * 1.0
         elif mode == 'points':
-            self._x = yAxis._x * 1.0
             self._y = pos * 1.0
 
     def _joinToAxis(self):
         ja = self.joinAxis
         if ja:
-            jam = self.joinAxisMode
-            jap = self.joinAxisPos
-            jta = self.joinToAxis
+            jam = self.joinAxisMode or 'bottom'
             if jam in ('bottom', 'top'):
-                jta(ja, mode=jam)
+                self.joinToAxis(ja, mode=jam)
             elif jam in ('value', 'points'):
-                jta(ja, mode=jam, pos=jap)
+                self.joinToAxis(ja, mode=jam, pos=self.joinAxisPos)
 
     def makeAxis(self):
         g = Group()
@@ -1493,6 +1551,7 @@ class NormalDateXValueAxis(XValueAxis):
         dailyFreq = AttrMapValue(isBoolean, desc='True if we are to assume daily data to be ticked at end of month.'),
         specifiedTickDates = AttrMapValue(NoneOr(SequenceOf(isNormalDate)), desc='Actual tick values to use; no calculations done'),
         specialTickClear = AttrMapValue(isBoolean, desc='clear rather than delete close ticks when forced first/end dates'),
+        skipGrid = AttrMapValue(OneOf('none','top','both','bottom'),"grid lines to skip top bottom both none"),
         )
 
     _valueClass = normalDate.ND
@@ -1763,27 +1822,21 @@ class YValueAxis(_YTicks,ValueAxis):
         _assertXAxis(xAxis)
         if mode == 'left':
             self._x = xAxis._x * 1.0
-            self._y = xAxis._y * 1.0
         elif mode == 'right':
             self._x = (xAxis._x + xAxis._length) * 1.0
-            self._y = xAxis._y * 1.0
         elif mode == 'value':
             self._x = xAxis.scale(pos) * 1.0
-            self._y = xAxis._y * 1.0
         elif mode == 'points':
             self._x = pos * 1.0
-            self._y = xAxis._y * 1.0
 
     def _joinToAxis(self):
         ja = self.joinAxis
         if ja:
             jam = self.joinAxisMode
-            jap = self.joinAxisPos
-            jta = self.joinToAxis
             if jam in ('left', 'right'):
-                jta(ja, mode=jam)
+                self.joinToAxis(ja, mode=jam)
             elif jam in ('value', 'points'):
-                jta(ja, mode=jam, pos=jap)
+                self.joinToAxis(ja, mode=jam, pos=self.joinAxisPos)
 
     def makeAxis(self):
         g = Group()

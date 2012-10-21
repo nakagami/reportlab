@@ -1,6 +1,6 @@
-#Copyright ReportLab Europe Ltd. 2000-2006
+#Copyright ReportLab Europe Ltd. 2000-2012
 #see license.txt for license details
-__version__=''' $Id: geomutils.py 3355 2009-01-08 14:58:44Z jonas $ '''
+__version__=''' $Id: geomutils.py 3959 2012-09-27 14:39:39Z robin $ '''
 __doc__='''Utility functions for geometrical operations.'''
 
 def normalizeTRBL(p):

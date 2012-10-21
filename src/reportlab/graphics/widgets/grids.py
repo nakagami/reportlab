@@ -1,7 +1,7 @@
-#Copyright ReportLab Europe Ltd. 2000-2004
+#Copyright ReportLab Europe Ltd. 2000-2012
 #see license.txt for license details
 #history http://www.reportlab.co.uk/cgi-bin/viewcvs.cgi/public/reportlab/trunk/reportlab/graphics/widgets/grids.py
-__version__=''' $Id: grids.py 3660 2010-02-08 18:17:33Z damian $ '''
+__version__=''' $Id: grids.py 3959 2012-09-27 14:39:39Z robin $ '''
 
 from reportlab.lib import colors
 from reportlab.lib.validators import isNumber, isColorOrNone, isBoolean, isListOfNumbers, OneOf, isListOfColors, isNumberOrNone
@@ -424,7 +424,13 @@ def colorRange(c0, c1, n):
 
 def centroid(P):
     '''compute average point of a set of points'''
-    return reduce(lambda x,y, fn=float(len(P)): (x[0]+y[0]/fn,x[1]+y[1]/fn),P,(0,0))
+    cx = 0
+    cy = 0
+    for x,y in P:
+        cx+=x
+        cy+=y
+    n = float(len(P))
+    return cx/n, cy/n
 
 def rotatedEnclosingRect(P, angle, rect):
     '''
@@ -485,10 +491,17 @@ class ShadedPolygon(Widget,LineShape):
         path.isClipPath = 1
         g = Group()
         g.add(path)
-        rect = ShadedRect(strokeWidth=0,strokeColor=None)
+        angle = self.angle
+        orientation = 'vertical'
+        if angle==180:
+            angle = 0
+        elif angle in (90,270):
+            orientation ='horizontal'
+            angle = 0
+        rect = ShadedRect(strokeWidth=0,strokeColor=None,orientation=orientation)
         for k in 'fillColorStart', 'fillColorEnd', 'numShades', 'cylinderMode':
             setattr(rect,k,getattr(self,k))
-        g.add(rotatedEnclosingRect(P, self.angle, rect))
+        g.add(rotatedEnclosingRect(P, angle, rect))
         g.add(EmptyClipPath)
         path = path.copy()
         path.isClipPath = 0

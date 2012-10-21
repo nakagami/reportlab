@@ -1,9 +1,9 @@
-#Copyright ReportLab Europe Ltd. 2000-2008
+#Copyright ReportLab Europe Ltd. 2000-2012
 #see license.txt for license details
 """
 Tests for TypedPropertyCollection class.
 """
-__version__='''$Id: test_widgetbase_tpc.py 3288 2008-09-15 11:03:17Z rgbecker $'''
+__version__='''$Id: test_widgetbase_tpc.py 3959 2012-09-27 14:39:39Z robin $'''
 from reportlab.lib.testutils import setOutDir,makeSuiteForClasses, printLocation
 setOutDir(__name__)
 import os, sys, copy

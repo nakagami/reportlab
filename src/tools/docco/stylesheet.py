@@ -1,4 +1,4 @@
-#Copyright ReportLab Europe Ltd. 2000-2004
+#Copyright ReportLab Europe Ltd. 2000-2012
 #see license.txt for license details
 #history http://www.reportlab.co.uk/cgi-bin/viewcvs.cgi/public/reportlab/trunk/reportlab/tools/docco/stylesheet.py
 #standard stylesheet for our manuals
@@ -112,8 +112,7 @@ def getStyleSheet():
 
     stylesheet.add(ParagraphStyle(name='Code',
                                   parent=stylesheet['Normal'],
-                                  fontName='Courier',
-                                  textColor=colors.navy,
+                                  fontName='Courier-Bold',
                                   fontSize=8,
                                   leading=8.8,
                                   leftIndent=36,

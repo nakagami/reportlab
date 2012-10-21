@@ -1,9 +1,9 @@
-#Copyright ReportLab Europe Ltd. 2000-2004
+#Copyright ReportLab Europe Ltd. 2000-2012
 #see license.txt for license details
 #history http://www.reportlab.co.uk/cgi-bin/viewcvs.cgi/public/reportlab/trunk/reportlab/graphics/renderPDF.py
 # renderPDF - draws Drawings onto a canvas
 
-__version__=''' $Id: renderPDF.py 3751 2010-07-30 09:28:28Z rgbecker $ '''
+__version__=''' $Id: renderPDF.py 3959 2012-09-27 14:39:39Z robin $ '''
 __doc__="""Render Drawing objects within others PDFs or standalone
 
 Usage::
@@ -78,10 +78,11 @@ class _PDFRenderer(Renderer):
                     )
 
     def drawImage(self, image):
+        path = image.path
         # currently not implemented in other renderers
-        if image.path and os.path.exists(image.path):
+        if path and (hasattr(path,'mode') or os.path.exists(image.path)):
             self._canvas.drawInlineImage(
-                    image.path,
+                    path,
                     image.x, image.y,
                     image.width, image.height
                     )
@@ -217,7 +218,12 @@ class _PDFRenderer(Renderer):
 #                self._canvas.setDash(array=value)
             elif key == 'strokeDashArray':
                 if value:
-                    self._canvas.setDash(value)
+                    if isinstance(value,(list,tuple)) and len(value)==2 and isinstance(value[1],(tuple,list)):
+                        phase = value[0]
+                        value = value[1]
+                    else:
+                        phase = 0
+                    self._canvas.setDash(value,phase)
                 else:
                     self._canvas.setDash()
             elif key == 'fillColor':

@@ -1,6 +1,6 @@
-#Copyright ReportLab Europe Ltd. 2000-2008
+#Copyright ReportLab Europe Ltd. 2000-2012
 #see license.txt for license details
-__version__=''' $Id: setup.py 3730 2010-06-16 11:56:53Z rgbecker $ '''
+__version__=''' $Id: setup.py 3963 2012-09-27 16:14:06Z rgbecker $ '''
 import os, sys, glob, ConfigParser, shutil
 platform = sys.platform
 pjoin = os.path.join
@@ -209,10 +209,10 @@ reportlab_files= [
         'fonts/_eb_____.pfb',
         'fonts/_ei_____.pfb',
         'fonts/_er_____.pfb',
-        'fonts/Sy______.pfb',
-        'fonts/Zd______.pfb',
-        'fonts/Zx______.pfb',
-        'fonts/Zy______.pfb',
+        'fonts/sy______.pfb',
+        'fonts/zd______.pfb',
+        'fonts/zx______.pfb',
+        'fonts/zy______.pfb',
         ]
 
 def get_fonts(PACKAGE_DIR, reportlab_files):
@@ -224,7 +224,7 @@ def get_fonts(PACKAGE_DIR, reportlab_files):
     try:
         infoline("Downloading standard T1 font curves")
 
-        remotehandle = urllib2.urlopen("http://www.reportlab.com/ftp/fonts/pfbfer.zip")
+        remotehandle = urllib2.urlopen("http://www.reportlab.com/ftp/pfbfer-20070710.zip")
         zipdata = StringIO.StringIO(remotehandle.read())
         remotehandle.close()
         archive = zipfile.ZipFile(zipdata)
@@ -423,7 +423,7 @@ def main():
         setup(
             name="reportlab",
             version=get_version(),
-            license="BSD license (see license.txt for details), Copyright (c) 2000-2010, ReportLab Inc.",
+            license="BSD license (see license.txt for details), Copyright (c) 2000-2012, ReportLab Inc.",
             description="The Reportlab Toolkit",
             long_description="""The ReportLab Toolkit. An Open Source Python library for generating PDFs and graphics.""",
 

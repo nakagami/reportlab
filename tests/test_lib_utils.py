@@ -1,8 +1,8 @@
-#Copyright ReportLab Europe Ltd. 2000-2008
+#Copyright ReportLab Europe Ltd. 2000-2012
 #see license.txt for license details
 """Tests for reportlab.lib.utils
 """
-__version__=''' $Id: test_lib_utils.py 3660 2010-02-08 18:17:33Z damian $ '''
+__version__=''' $Id: test_lib_utils.py 3959 2012-09-27 14:39:39Z robin $ '''
 from reportlab.lib.testutils import setOutDir,makeSuiteForClasses, printLocation
 setOutDir(__name__)
 import os

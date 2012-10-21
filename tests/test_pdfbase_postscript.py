@@ -1,12 +1,12 @@
 #!/bin/env python
-#Copyright ReportLab Europe Ltd. 2000-2004
+#Copyright ReportLab Europe Ltd. 2000-2012
 #see license.txt for license details
 __doc__="""Tests Postscript XObjects.
 
 Nothing visiblke in Acrobat, but the resulting files
 contain graphics and tray commands if exported to
 a Postscript device in Acrobat 4.0"""
-__version__='''$Id: test_pdfbase_postscript.py 3288 2008-09-15 11:03:17Z rgbecker $'''
+__version__='''$Id: test_pdfbase_postscript.py 3959 2012-09-27 14:39:39Z robin $'''
 from reportlab.lib.testutils import setOutDir,makeSuiteForClasses, outputfile, printLocation
 setOutDir(__name__)
 import unittest

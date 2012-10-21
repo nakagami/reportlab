@@ -1,8 +1,8 @@
-#Copyright ReportLab Europe Ltd. 2000-2004
+#Copyright ReportLab Europe Ltd. 2000-2012
 #see license.txt for license details
 #history http://www.reportlab.co.uk/cgi-bin/viewcvs.cgi/public/reportlab/trunk/reportlab/platypus/frames.py
 
-__version__=''' $Id: frames.py 3449 2009-03-03 17:38:41Z rgbecker $ '''
+__version__=''' $Id: frames.py 3959 2012-09-27 14:39:39Z robin $ '''
 
 __doc__="""A frame is a container for content on a page.
 """
@@ -197,9 +197,15 @@ class Frame:
             s = flowable.getSpaceBefore()
             if self._oASpace:
                 s = max(s-self._prevASpace,0)
-        flowable.canv = canv    #some flowables might need this
-        r = flowable.split(self._aW, y-p-s)
-        del flowable.canv
+        flowable._frame = self                  #some flowables might need these
+        flowable.canv = canv        
+        try:
+            r = flowable.split(self._aW, y-p-s)
+        finally:
+            #sometimes canv/_frame aren't still on the flowable
+            for a in ('canv', '_frame'):
+                if hasattr(flowable,a):
+                    delattr(flowable,a)
         return r
 
     def drawBoundary(self,canv):

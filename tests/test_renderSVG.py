@@ -122,8 +122,8 @@ class RenderSvgSimpleTestCase(unittest.TestCase):
         from reportlab.lib.units import cm
         from reportlab.lib import colors
 
-        width=10*cm
-        height=2*cm
+        width=300
+        height=60
 
         #Create fairly simple drawing object,
         drawing=Drawing(width, height)
@@ -173,6 +173,95 @@ class RenderSvgSimpleTestCase(unittest.TestCase):
                                   fillColor=colors.green))
 
         renderSVG.drawToFile(drawing, outputfile("test_renderSVG_simple_test3.svg"))
+
+    def test4(self):
+        "Test character encoding."
+
+        path = outputfile("test_renderSVG_simple_test4.svg")
+        specialChar = u'\u2019'
+
+        d = Drawing(200, 100)
+        d.add(String(0, 0, "foo"+specialChar))
+        d.add(String(100, 0, "bar"))
+        renderSVG.drawToFile(d, path)
+
+        if not HAVE_XML_PARSER:
+            warnIgnoredRestofTest()
+            return
+
+        svg = load(path)
+        fg = svg.getElementsByTagName('g')[0]           # flipping group
+        dg = fg.getElementsByTagName('g')[0]            # diagram group
+        textChildren = dg.getElementsByTagName('text')  # text nodes
+        t0 = string.strip(textChildren[0].childNodes[0].nodeValue)
+        t1 = string.strip(textChildren[1].childNodes[0].nodeValue)
+        assert t0 == 'foo'+specialChar
+        assert t1 == 'bar'
+
+    def tearDown(self):
+        "When finished, make a little index page to view them in situ"
+        
+        body = """<html>
+    <head><title>renderSVG test output</title></head>
+    <body>
+        <h1>renderSVG test output in a web page</h1>
+        <p>We have four SVG diagrams embedded in this page.  Each is within a cyan-coloured div.
+        The first 3 have a native size of 400x200, thus consume a height of 200 pixels on
+        the page.  The last is 300x60.</p>
+
+        <div style="background-color:cyan">
+            <embed src="test_renderSVG_simple_test0.svg" type="image/svg+xml" />
+        </div>
+        <hr/>
+        <div style="background-color:cyan">
+            <embed src="test_renderSVG_simple_test1.svg" type="image/svg+xml" />
+        </div>
+        <hr/>
+        <div style="background-color:cyan">
+            <embed src="test_renderSVG_simple_test2.svg" type="image/svg+xml" />
+        </div>
+        <hr/>
+        <div style="background-color:cyan">
+            <embed src="test_renderSVG_simple_test3.svg" type="image/svg+xml" />
+        </div>
+
+        <hr>
+        <p>Test of resizing:  the ones below are sized 50%, 100%, 150%. We did this by explicitly setting
+        the width and height in the <code>embed</code> tag.</p>
+        <div style="background-color:cyan">
+            <embed src="test_renderSVG_simple_test3.svg" type="image/svg+xml" width="150" height="45"/>
+        </div>
+        <hr/>
+        <div style="background-color:cyan">
+            <embed src="test_renderSVG_simple_test3.svg" type="image/svg+xml" width="300" height="60"/>
+        </div>
+        <hr/>
+        <div style="background-color:cyan">
+            <embed src="test_renderSVG_simple_test3.svg" type="image/svg+xml" width="450" height="90"/>
+        </div>
+        <hr/>
+
+        <p>Test of resizing again:  the ones below are sized 50%, 100%, 150% by setting width only.</p>
+        <div style="background-color:cyan">
+            <embed src="test_renderSVG_simple_test3.svg" type="image/svg+xml" width="150"/>
+        </div>
+        <hr/>
+        <div style="background-color:cyan">
+            <embed src="test_renderSVG_simple_test3.svg" type="image/svg+xml" width="300"/>
+        </div>
+        <hr/>
+        <div style="background-color:cyan">
+            <embed src="test_renderSVG_simple_test3.svg" type="image/svg+xml" width="450"/>
+        </div>
+        <hr/>
+
+        
+    </body>
+<html>
+"""
+        open('test_renderSVG_output.html', 'w').write(body)
+        
+
 
 class RenderSvgAxesTestCase(unittest.TestCase):
     "Testing renderSVG module on Axes widgets."

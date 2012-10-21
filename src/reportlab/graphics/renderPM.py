@@ -1,7 +1,7 @@
-#Copyright ReportLab Europe Ltd. 2000-2004
+#Copyright ReportLab Europe Ltd. 2000-2012
 #see license.txt for license details
 #history www.reportlab.co.uk/rl-cgi/viewcvs.cgi/rlextra/graphics/Csrc/renderPM/renderP.py
-__version__=''' $Id: renderPM.py 3704 2010-04-15 13:41:32Z rgbecker $ '''
+__version__=''' $Id: renderPM.py 3959 2012-09-27 14:39:39Z robin $ '''
 __doc__="""Render drawing objects in common bitmap formats
 
 Usage::
@@ -78,7 +78,13 @@ class _PMRenderer(Renderer):
         self._canvas.lineCap = s['strokeLineCap']
         self._canvas.lineJoin = s['strokeLineJoin']
         da = s['strokeDashArray']
-        da = da and (0,da) or None
+        if not da:
+            da = None
+        else:
+            if not isinstance(da,(list,tuple)):
+                da = da,
+            if len(da)!=2 or not isinstance(da[1],(list,tuple)):
+                da = 0, da  #assume phase of 0
         self._canvas.dashArray = da
         alpha = s['fillOpacity']
         if alpha is not None:
@@ -117,19 +123,22 @@ class _PMRenderer(Renderer):
         self._canvas.line(line.x1,line.y1,line.x2,line.y2)
 
     def drawImage(self, image):
-        if image.path and os.path.exists(image.path):
-            if type(image.path) is type(''):
-                im = _getImage().open(image.path).convert('RGB')
-            else:
-                im = image.path.convert('RGB')
-            srcW, srcH = im.size
-            dstW, dstH = image.width, image.height
-            if dstW is None: dstW = srcW
-            if dstH is None: dstH = srcH
-            self._canvas._aapixbuf(
-                    image.x, image.y, dstW, dstH,
-                    im.tostring(), srcW, srcH, 3,
-                    )
+        path = image.path
+        if isinstance(path,basestring):
+            if not (path and os.path.isfile(path)): return
+            im = _getImage().open(path).convert('RGB')
+        elif hasattr(path,'convert'):
+            im = path.convert('RGB')
+        else:
+            return
+        srcW, srcH = im.size
+        dstW, dstH = image.width, image.height
+        if dstW is None: dstW = srcW
+        if dstH is None: dstH = srcH
+        self._canvas._aapixbuf(
+                image.x, image.y, dstW, dstH,
+                im.tostring(), srcW, srcH, 3,
+                )
 
     def drawCircle(self, circle):
         c = self._canvas
@@ -658,7 +667,7 @@ def drawToString(d,fmt='GIF', dpi=72, bg=0xffffff, configPIL=None, showBoundary=
 
 save = drawToFile
 
-def test():
+def test(verbose=True):
     def ext(x):
         if x=='tiff': x='tif'
         return x
@@ -719,7 +728,7 @@ def test():
                     html.append('<a href="%s">python source</a><br>\n' % filename)
                 elif k=='svg':
                     html.append('<a href="%s">SVG</a><br>\n' % filename)
-                print 'wrote',fullpath
+                if verbose: print 'wrote',fullpath
             except AttributeError:
                 print 'Problem drawing %s file'%k
                 raise
@@ -731,7 +740,7 @@ def test():
     if sys.platform=='mac':
         from reportlab.lib.utils import markfilename
         markfilename(htmlFileName,ext='HTML')
-    print 'wrote %s' % htmlFileName
+    if verbose: print 'wrote %s' % htmlFileName
 
 if __name__=='__main__':
     test()

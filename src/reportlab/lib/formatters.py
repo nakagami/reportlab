@@ -1,9 +1,9 @@
 #!/bin/env python
-#Copyright ReportLab Europe Ltd. 2000-2004
+#Copyright ReportLab Europe Ltd. 2000-2012
 #see license.txt for license details
 #history http://www.reportlab.co.uk/cgi-bin/viewcvs.cgi/public/reportlab/trunk/reportlab/lib/formatters.py
 __all__=('Formatter','DecimalFormatter')
-__version__=''' $Id: formatters.py 3155 2007-10-05 10:55:52Z rgbecker $ '''
+__version__=''' $Id: formatters.py 3959 2012-09-27 14:39:39Z robin $ '''
 __doc__="""
 These help format numbers and dates in a user friendly way.
 Used by the graphics framework.

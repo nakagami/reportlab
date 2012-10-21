@@ -1,6 +1,6 @@
-#Copyright ReportLab Europe Ltd. 2000-2008
+#Copyright ReportLab Europe Ltd. 2000-2012
 #see license.txt for license details
-__version__=''' $Id: PyFontify.py 3660 2010-02-08 18:17:33Z damian $ '''
+__version__=''' $Id: PyFontify.py 3959 2012-09-27 14:39:39Z robin $ '''
 __doc__="""
 Module to analyze Python source code; for syntax coloring tools.
 

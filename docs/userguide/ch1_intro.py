@@ -1,6 +1,6 @@
-#Copyright ReportLab Europe Ltd. 2000-2004
+#Copyright ReportLab Europe Ltd. 2000-2012
 #see license.txt for license details
-__version__ = '$Id: ch1_intro.py 3790 2010-09-29 14:20:28Z tim $'
+__version__ = '$Id: ch1_intro.py 3960 2012-09-27 15:22:33Z guillaume $'
 from tools.docco.rl_doc_utils import *
 from reportlab.platypus.tableofcontents import TableOfContents
 from datetime import datetime
@@ -181,6 +181,7 @@ heading2("Acknowledgements")
 disc("""Many people have contributed to ReportLab.  We would like to thank in particular 
 (in alphabetical order): 
 Albertas Agejevas, 
+Alex Buck, 
 Andre Reitz, 
 Andrew Mercer, 
 Benjamin Dumke,
@@ -189,13 +190,16 @@ Chad Miller,
 Chris Lee, 
 Christian Jacobs, 
 Dinu Gherman,
-Eric Johnson, 
+Eric Johnson,
+Felix Labrecque,  
 Gary Poster, 
 Germán M. Bravo,
+Guillaume Francois, 
 Hans Brand,
 Henning Vonbargen,
 Hosam Aly,
-Ian Stevens,
+Ian Stevens, 
+James Martin-Collar, 
 Jeff Bauer,
 Jerome Alet,
 Jerry Casiano,
@@ -210,6 +214,7 @@ Mike Folwell,
 Moshe Wagner,
 Nate Silva,
 Paul McNett, 
+Peter Johnson, 
 PJACock,
 Publio da Costa Melo,  
 Randolph Bentson,
@@ -240,16 +245,26 @@ heading2("Installation and Setup")
 heading3("A note on available versions")
 disc("""Our website ^http://www.reportlab.com/^ will always have up-to-date
 information on setups and installations. The latest version of the ReportLab library can be found at
-^http://www.reportlab.com/software/opensource/rl-toolkit/download/^.  Older versions can be found at ^http://www.reportlab.com/ftp/^.
-  Each successive version is stored in both zip
+^http://www.reportlab.com/software/opensource/rl-toolkit/download/^.
+Older versions can be found at ^http://www.reportlab.com/ftp/^.
+""")
+disc("""Each successive version is stored in both zip
 and tgz format, but the contents are identical apart from line endings.
 Versions are numbered:  $ReportLab_<major_version>_<minor_version>.zip$, 
-$ReportLab_<major_version>_<minor_version>.tgz$ and so on. 
-The latest stable version is $reportlab2.5$ (.zip or .tgz), 
+$ReportLab_<major_version>_<minor_version>.tgz$ and so on.
+""")
+disc("""
+The latest stable version is $reportlab2.6$ (.zip or .tgz). 
 Daily snapshots of the trunk are available as
 $reportlab-daily-unix.tar.gz$ or $reportlab-daily-win32.zip$.
-  Finally, from version 2.4 onwards, there is also a Windows installer
-available for Python versions 2.4 - 2.7, named $ReportLab-2.x.win32-py2.x.exe$
+""")
+disc("""Finally, from version 2.4 onwards, there is also a Windows installer
+available for Python versions 2.5 - 2.7, named $ReportLab-2.x.win32-py2.x.exe$
+""")
+
+pencilnote()
+disc("""We plan to drop the support of Python 2.5 in our next release.
+We advise you to move to Python 2.6 or 2.7.
 """)
 
 heading3("Installation on Windows")
@@ -257,8 +272,8 @@ heading3("Installation on Windows")
 restartList()
 
 list("""First, install Python from $http://www.python.org/.$
-Reportlab 2.x works with Python 2.4 upwards but we recommend to use
-the latest stable version of Python 2.5 or 2.6.  
+Reportlab 2.x works with Python 2.5 upwards but we recommend to use
+the latest stable version of Python 2.7.  
 After installing, you should be able to run the
 'Python (command line)' option from the Start Menu.
 """)
@@ -304,8 +319,10 @@ steps and warn you if anything is missing or mismatched.""")
 
 heading3("Installation instructions for Unix")
 disc("""
-     
+Many Linux distributions already include or can deliver a ReportLab distribution, although this may be a few months behind our own releases.  On Ubuntu, simply use ^sudo apt-get install python-reportlab^.   In addition, we support the Python packaging mechanisms so you can use ^easy_install reportlab^ in most Python environments.
 """)
+disc("""
+If you want to install the latest version of our code, or to install your own reportlab to go with our commercial distribution, you can install from source as follows:""")
 
 restartList()
 list("""First, install Python.  On a large number of Unix and Linux distributions, Python is already installed,
@@ -397,8 +414,6 @@ bullet("""pageComression: set to non-zero to try and get compressed PDF.""")
 bullet("""allowtableBoundsErrors: set to 0 to force an error on very large Platypus table elements""")
 bullet("""emptyTableAction: Controls behaviour for empty tables, can be 'error' (default), 'indicate' or 'ignore'.""")
 
-
-
 heading2("Learning More About Python")
 
 disc("""
@@ -440,7 +455,7 @@ $http://www.hetland.org/python/instant-python.php$
 
 bullet("""<b>Dive Into Python</b>.
 A free Python tutorial for experienced programmers.
-$http://diveintopython.org/$
+$http://www.diveintopython.net/$
 """)
 
 
@@ -466,44 +481,49 @@ Bigger ideas and more substantial rewrites are deferred to Version 3.0, with no 
 target dates.
 """)
 
-heading2("What's New in ReportLab 2.4")
-disc("""Many new features have been added and numerous bugs have been fixed, a big
-thanks goes to the community for their help in reporting bugs and providing patches. 
-Thanks to everybody who has contributed to the open-source toolkit in the run-up to the 2.4 release, 
+heading2("What's New in ReportLab 2.6")
+disc("""This is a minor release focusing mainly on improved documentation. There are a 
+number of minor enhancements, and a larger number of previous-undocumented
+enhancements which we have documented better.""")
+
+disc("""A big thanks goes to the community for their help in reporting bugs and providing patches. 
+Thanks to everybody who has contributed to the open-source toolkit in the run-up to the 2.6 release, 
 whether by reporting bugs, sending patches, or contributing to the reportlab-users mailing list. 
-Thanks especially to the following people: PJACock, Hans Brand, Ian Stevens, Yoann Roman, Hosam Aly 
-Randolph Bentson, Volker Haas, Simon King, Henning Vonbargen, Michael Egorov, Mike Folwell and 
-Roberto Alsina.  
-This page documents what has changed since version 2.3.""")
+Thanks especially to the following people: Alex Buck, Felix Labrecque,
+Peter Johnson, James Martin-Collar and Guillaume Francois.
+This page documents what has changed since version 2.5.""")
 
-disc('Reportlab 2.4 is installable with easy_install. You must have installed a compatible C compiler and the dependencies such as Freetype and PIL.')
+disc('Reportlab 2.6 is installable with easy_install. You must have installed a compatible C compiler and the dependencies such as Freetype and PIL.')
 
-heading4('PDF')
-bullet("""Canvas automatic cropmarks.""")
-bullet("""RGB alpha colours - colours can now be transparent with an alpha value.""")
-bullet("""CMYK overPrint - physical colour mix in the printer - similar to RGB alpha but
- used in professional printing.""")
-bullet("""Colours module has a fade function that returns a list of different shades made
- up of one base colour.""")
-bullet("""Unicode font file names are now accepted.""")
-bullet("""Lots of improvements and verbosity to error messages and the way they are handled. 
-Font size can now be specified in pixels.""")
+heading4('General changes')
+bullet("""Manuals have been reformatted with more pleasing code snippets and tables of 
+contents, and reviewed and expanded.""")
 
-heading4('Platypus')
-bullet("""Added support for heading styles h4-h6.""")
-bullet("""Improved support for onDraw and SimpleIndex.""")
-bullet("""Add support for index tableStyle.""")
-bullet("""Added an alphabetic grouping indexing class.""")
-bullet("""Added support for multi-level and alphabetical indexes.""")
-bullet("""Added support for an unlimited number of TOC levels with default styles.""")
-bullet("""Index entries can now be clickable.""")
+heading4('Flowing documents (Platypus)')
+bullet("""Added support for HTML-style list objects.""")
+bullet("""Added flexible mechanism for drawing bullets.""")
+bullet("""Allowed XPreformatted objects to use Asian line wrapping.""")
+bullet("""Added an 'autoNextPageTemplate' attribute to PageTemplates. For example you 
+can now set up a 'chapter first page template' which will always be followed
+by a 'continuation template' on the next page break, saving the programmer from
+having to issue control flow commands in the story.""")
+bullet("""Added a TopPadder flowable, which will 'wrap' another Flowable and move it 
+to the bottom of the current page.""")
+bullet("""More helpful error messages when large tables cannot be rendered.""")
+bullet("""Documentation for images within text (test_032_images).""")
+bullet("""Trailing dots for use on contents pages.""")
 
-heading4('Graphics')
-bullet("""Chart axes values can be reversible.""")
-bullet("""Labels on chart axes can now be drawn above or below the axes (hi or low).""")
-bullet("""A per swatch callout is now allowed in the legend.""")
-bullet("""A new anchoring mode for string 'numeric' that align numerical strings by their decimal place.""")
-bullet("""Drawing has a resized method now to change the size dynamically.""")
+heading4('Charts and graphics')
+bullet("""Support for UPCA bar codes.""")
+bullet("""We now have a semi-intelligent system for labelling pie charts with 
+callout lines.  Thanks to James Martin-Collar, a maths student at Warwick 
+University, who did this as his summer internship.""")
+bullet("""Axes - added startOffset and endOffset properties; allowed for axis 
+background annotations.""")
+bullet("""Bar charts - allow more control of z Index (i.e. drawing order of axes and
+lines)""")
+bullet("""Pie charts - fixed bugs in 3d appearance.""")
+bullet("""SVG output back end has seen some bugs fixed and now outputs resizeable SVG.""")
 
 # Noteworthy bug fixes Section #######################
 #heading3("Noteworthy bug fixes")

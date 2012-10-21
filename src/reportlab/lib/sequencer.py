@@ -1,7 +1,7 @@
-#Copyright ReportLab Europe Ltd. 2000-2004
+#Copyright ReportLab Europe Ltd. 2000-2012
 #see license.txt for license details
 #history http://www.reportlab.co.uk/cgi-bin/viewcvs.cgi/public/reportlab/trunk/reportlab/lib/sequencer.py
-__version__=''' $Id: sequencer.py 3342 2008-12-12 15:55:34Z andy $ '''
+__version__=''' $Id: sequencer.py 3959 2012-09-27 14:39:39Z robin $ '''
 __doc__="""A Sequencer class counts things. It aids numbering and formatting lists."""
 __all__='''Sequencer getSequencer setSequencer'''.split()
 #
@@ -45,6 +45,14 @@ def _format_abc(num):
     """Lowercase.  Wraps around at 26."""
     n = (num -1) % 26
     return chr(n+97)
+
+_type2formatter = {
+        'I':_format_I,
+        'i':_format_i,
+        '1':_format_123,
+        'A':_format_ABC,
+        'a':_format_abc,
+        }
 
 class _Counter:
     """Private class used by Sequencer.  Each counter

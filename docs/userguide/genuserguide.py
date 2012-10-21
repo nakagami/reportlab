@@ -1,8 +1,8 @@
 #!/bin/env python
-#Copyright ReportLab Europe Ltd. 2000-2004
+#Copyright ReportLab Europe Ltd. 2000-2012
 #see license.txt for license details
 #history http://www.reportlab.co.uk/cgi-bin/viewcvs.cgi/public/reportlab/trunk/reportlab/docs/userguide/genuserguide.py
-__version__=''' $Id: genuserguide.py 3376 2009-01-19 12:05:41Z jonas $ '''
+__version__=''' $Id: genuserguide.py 3959 2012-09-27 14:39:39Z robin $ '''
 __doc__ = """
 This module contains the script for building the user guide.
 """

@@ -1,9 +1,9 @@
-#Copyright ReportLab Europe Ltd. 2000-2008
+#Copyright ReportLab Europe Ltd. 2000-2012
 #see license.txt for license details
 # full screen test
 """Tests for PDF page modes support in reportlab.pdfgen.
 """
-__version__='''$Id: test_pdfgen_pagemodes.py 3288 2008-09-15 11:03:17Z rgbecker $'''
+__version__='''$Id: test_pdfgen_pagemodes.py 3959 2012-09-27 14:39:39Z robin $'''
 from reportlab.lib.testutils import setOutDir,makeSuiteForClasses, outputfile, printLocation
 setOutDir(__name__)
 import os

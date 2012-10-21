@@ -1,7 +1,7 @@
 #!/bin/env python
-#Copyright ReportLab Europe Ltd. 2000-2008
+#Copyright ReportLab Europe Ltd. 2000-2012
 #see license.txt for license details
-__version__=''' $Id: test_pdfgen_pycanvas.py 3660 2010-02-08 18:17:33Z damian $ '''
+__version__=''' $Id: test_pdfgen_pycanvas.py 3959 2012-09-27 14:39:39Z robin $ '''
 __doc__='testscript for reportlab.pdfgen'
 #tests and documents new low-level canvas and the pycanvas module to output Python source code.
 from reportlab.lib.testutils import setOutDir,makeSuiteForClasses, outputfile, printLocation

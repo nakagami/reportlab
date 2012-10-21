@@ -1,8 +1,8 @@
-#Copyright ReportLab Europe Ltd. 2000-2004
+#Copyright ReportLab Europe Ltd. 2000-2012
 #see license.txt for license details
 """Tests for the reportlab.platypus.paragraphs module.
 """
-__version__=''' $Id: test_platypus_paragraphs.py 3773 2010-09-08 13:36:54Z rgbecker $ '''
+__version__=''' $Id: test_platypus_paragraphs.py 3959 2012-09-27 14:39:39Z robin $ '''
 from reportlab.lib.testutils import setOutDir,makeSuiteForClasses, outputfile, printLocation
 setOutDir(__name__)
 import sys, os, unittest
@@ -10,7 +10,7 @@ from operator import truth
 from reportlab.pdfbase.pdfmetrics import stringWidth, registerFont, registerFontFamily
 from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.platypus.paraparser import ParaParser
-from reportlab.platypus.flowables import Flowable
+from reportlab.platypus.flowables import Flowable, DocAssert
 from reportlab.lib.colors import Color
 from reportlab.lib.units import cm
 from reportlab.lib.enums import TA_LEFT, TA_RIGHT, TA_CENTER, TA_JUSTIFY
@@ -105,6 +105,40 @@ class ParagraphCorners(unittest.TestCase):
         assert h0<=aH,'Multi-frag CJK split[0] has wrong height %s >= available %s' % (H0,aH)
         w1,h1=S[1].wrap(aW,aH)
         assert h0+h1==h, 'Multi-frag-CJK split[0].height(%s)+split[1].height(%s) don\'t add to original %s' % (h0,h1,h)
+
+    def test3(self):
+        '''compare CJK splitting in some edge cases'''
+        from reportlab.pdfgen.canvas import Canvas
+        from reportlab.platypus.paragraph import Paragraph
+        from reportlab.lib.styles import ParagraphStyle
+        from reportlab.pdfbase import pdfmetrics
+        from reportlab.lib.enums import TA_LEFT
+        sty = ParagraphStyle('A')
+        sty.fontSize = 15
+        sty.leading = sty.fontSize*1.2
+        sty.fontName = 'Courier'
+        sty.alignment = TA_LEFT
+        sty.wordWrap = 'CJK'
+        p0=Paragraph('ABCDEFGHIJKL]N',sty)
+        p1=Paragraph('AB<font color="red">C</font>DEFGHIJKL]N',sty)
+        canv = Canvas('test_platypus_paragraph_cjk3.pdf')
+        ix = len(canv._code)
+        aW = pdfmetrics.stringWidth('ABCD','Courier',15)
+        w,h=p0.wrap(aW,1000000)
+        y = canv._pagesize[1]-72-h
+        p0.drawOn(canv,72,y)
+        w,h=p1.wrap(aW,1000000)
+        y -= h+10
+        p1.drawOn(canv,72,y)
+        w,h=p0.wrap(aW*0.25-2,1000000)
+        y -= h+10
+        p0.drawOn(canv,72,y)
+        w,h=p1.wrap(aW/4.-2,1000000)
+        y -= h+10
+        p1.drawOn(canv,72,y)
+        assert canv._code[ix:]==['q', '1 0 0 1 72 697.8898 cm', 'q', '0 0 0 rg', 'BT 1 0 0 1 0 57 Tm /F2 15 Tf 18 TL (ABCD) Tj T* (EFGH) Tj T* (IJKL]) Tj T* (N) Tj T* ET', 'Q', 'Q', 'q', '1 0 0 1 72 615.8898 cm', 'q', 'BT 1 0 0 1 0 57 Tm 18 TL /F2 15 Tf 0 0 0 rg (AB) Tj 1 0 0 rg (C) Tj 0 0 0 rg (D) Tj T* (EFGH) Tj T* (IJKL]) Tj T* (N) Tj T* ET', 'Q', 'Q', 'q', '1 0 0 1 72 353.8898 cm', 'q', '0 0 0 rg', 'BT 1 0 0 1 0 237 Tm /F2 15 Tf 18 TL (A) Tj T* (B) Tj T* (C) Tj T* (D) Tj T* (E) Tj T* (F) Tj T* (G) Tj T* (H) Tj T* (I) Tj T* (J) Tj T* (K) Tj T* (L) Tj T* (]) Tj T* (N) Tj T* ET', 'Q', 'Q', 'q', '1 0 0 1 72 91.88976 cm', 'q', 'BT 1 0 0 1 0 237 Tm 18 TL /F2 15 Tf 0 0 0 rg (A) Tj T* (B) Tj T* 1 0 0 rg (C) Tj T* 0 0 0 rg (D) Tj T* (E) Tj T* (F) Tj T* (G) Tj T* (H) Tj T* (I) Tj T* (J) Tj T* (K) Tj T* (L) Tj T* (]) Tj T* (N) Tj T* ET', 'Q', 'Q']
+        canv.showPage()
+        canv.save()
         
 class ParagraphSplitTestCase(unittest.TestCase):
     "Test multi-page splitting of paragraphs (eyeball-test)."
@@ -549,6 +583,52 @@ phonemic and morphological analysis.'''
 
             a(Paragraph(text,style=normal_just))
         doc = MyDocTemplate(outputfile('test_platypus_paragraphs_just.pdf'))
+        doc.build(story)
+
+    def testAutoPageTemplate(self):
+        from reportlab.platypus import BaseDocTemplate, PageTemplate, Frame, PageBegin
+        from reportlab.lib.units import inch
+        class onPage:
+            def __init__(self,label):
+                self.label = label
+            def __call__(self,canv,doc):
+                canv.drawString(72,72,'This is pageTemplate(%s)' % (self.label,))
+        class MyDocTemplate(BaseDocTemplate):
+            _invalidInitArgs = ('pageTemplates',)
+
+            def __init__(self, filename, **kw):
+                self.allowSplitting = 0
+                BaseDocTemplate.__init__(self, filename, **kw)
+                self.addPageTemplates(
+                        [
+                        PageTemplate('normal',
+                                [Frame(inch, inch, 6.27*inch, 9.69*inch, id='first',topPadding=0,rightPadding=0,leftPadding=0,bottomPadding=0,showBoundary=ShowBoundaryValue(color="red"))],
+                                onPage = onPage('normal'),
+                                ),
+                        PageTemplate('auto',
+                                [Frame(inch, inch, 6.27*inch, 9.69*inch, id='first',topPadding=0,rightPadding=0,leftPadding=0,bottomPadding=0,showBoundary=ShowBoundaryValue(color="red"))],
+                                onPage = onPage('auto'),
+                                autoNextPageTemplate = 'autoFollow',
+                                ),
+                        PageTemplate('autoFollow',
+                                [Frame(inch, inch, 6.27*inch, 9.69*inch, id='first',topPadding=0,rightPadding=0,leftPadding=0,bottomPadding=0,showBoundary=ShowBoundaryValue(color="red"))],
+                                onPage = onPage('autoFollow'),
+                                ),
+                        ])
+        styleSheet = getSampleStyleSheet()
+        normal = ParagraphStyle(name='normal',fontName='Times-Roman',fontSize=12,leading=1.2*12,parent=styleSheet['Normal'])
+        story =[]
+        a = story.append
+        a(Paragraph('should be on page template normal', normal))
+        a(NextPageTemplate('auto'))
+        a(PageBreak())
+        a(Paragraph('should be on page template auto', normal))
+        a(PageBreak())
+        a(DocAssert('doc.pageTemplate.id=="autoFollow"','expected doc.pageTemplate.id=="autoFollow"'))
+        a(Paragraph('should be on page template autoFollow 1', normal))
+        a(PageBreak())
+        a(Paragraph('should be on page template autoFollow 2', normal))
+        doc = MyDocTemplate(outputfile('test_platypus_paragraphs_AutoNextPageTemplate.pdf'))
         doc.build(story)
 
 #noruntests

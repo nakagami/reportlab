@@ -1,7 +1,7 @@
-#Copyright ReportLab Europe Ltd. 2000-2004
+#Copyright ReportLab Europe Ltd. 2000-2012
 #see license.txt for license details
 #history http://www.reportlab.co.uk/cgi-bin/viewcvs.cgi/public/reportlab/trunk/reportlab/tools/pythonpoint/styles/horrible.py
-__version__=''' $Id: horrible.py 2385 2004-06-17 15:26:05Z rgbecker $ '''
+__version__=''' $Id: horrible.py 3959 2012-09-27 14:39:39Z robin $ '''
 # style_modern.py
 __doc__="""This is an example style sheet.  You can create your own, and
 have them loaded by the presentation.  A style sheet is just a

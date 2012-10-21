@@ -6,7 +6,7 @@
 * history http://www.reportlab.co.uk/cgi-bin/viewcvs.cgi/public/reportlab/trunk/reportlab/lib/_rl_accel.c
 */
 #if 0
-static __version__=" $Id: _rl_accel.c 3755 2010-08-12 09:59:24Z rgbecker $ "
+static __version__=" $Id: _rl_accel.c 3815 2011-01-07 15:16:03Z rgbecker $ "
 #endif
 #include "Python.h"
 #include <stdlib.h>
@@ -29,7 +29,7 @@ static __version__=" $Id: _rl_accel.c 3755 2010-08-12 09:59:24Z rgbecker $ "
 #ifndef min
 #	define min(a,b) ((a)<(b)?(a):(b))
 #endif
-#define VERSION "0.63"
+#define VERSION "0.64"
 #define MODULE "_rl_accel"
 
 static PyObject *moduleVersion;
@@ -332,7 +332,7 @@ static PyObject *_instanceEscapePDF(PyObject *unused, PyObject* args)
 static PyObject *_sameFrag(PyObject *self, PyObject* args)
 {
 	PyObject *f, *g;
-	static char *names[] = {"fontName", "fontSize", "textColor", "rise", "underline", "strike", "link", NULL};
+	static char *names[] = {"fontName", "fontSize", "textColor", "rise", "underline", "strike", "link", "backColor", NULL};
 	int	r=0, t;
 	char **p;
 	if (!PyArg_ParseTuple(args, "OO:_sameFrag", &f, &g)) return NULL;

@@ -1,7 +1,7 @@
-#Copyright ReportLab Europe Ltd. 2000-2004
+#Copyright ReportLab Europe Ltd. 2000-2012
 #see license.txt for license details
 #history http://www.reportlab.co.uk/cgi-bin/viewcvs.cgi/public/reportlab/trunk/reportlab/rl_config.py
-__version__=''' $Id: rl_config.py 3793 2010-09-30 11:27:09Z rgbecker $ '''
+__version__=''' $Id: rl_config.py 3959 2012-09-27 14:39:39Z robin $ '''
 __doc__='''Configuration file.  You may edit this if you wish.'''
 
 allowTableBoundsErrors =    1 # set to 0 to die on too large elements in tables in debug (recommend 1 for production use)

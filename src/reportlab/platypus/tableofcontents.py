@@ -1,8 +1,8 @@
-#Copyright ReportLab Europe Ltd. 2000-2004
+#Copyright ReportLab Europe Ltd. 2000-2012
 #see license.txt for license details
 #history http://www.reportlab.co.uk/cgi-bin/viewcvs.cgi/public/reportlab/trunk/reportlab/platypus/tableofcontents.py
 
-__version__=''' $Id: tableofcontents.py 3702 2010-04-14 17:13:41Z rgbecker $ '''
+__version__=''' $Id: tableofcontents.py 3959 2012-09-27 14:39:39Z robin $ '''
 __doc__="""Experimental class to generate Tables of Contents easily
 
 This module defines a single TableOfContents() class that can be used to

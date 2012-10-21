@@ -1,7 +1,7 @@
-#Copyright ReportLab Europe Ltd. 2000-2010
+#Copyright ReportLab Europe Ltd. 2000-2012
 #see license.txt for license details
 #history http://www.reportlab.co.uk/cgi-bin/viewcvs.cgi/public/reportlab/trunk/reportlab/lib/colors.py
-__version__=''' $Id: colors.py 3780 2010-09-17 13:40:59Z rgbecker $ '''
+__version__=''' $Id: colors.py 3959 2012-09-27 14:39:39Z robin $ '''
 __doc__='''Defines standard colour-handling classes and colour names.
 
 We define standard classes to hold colours in two models:  RGB and CMYK.
@@ -71,6 +71,14 @@ class Color:
 
     def hexvala(self):
         return '0x%02x%02x%02x%02x' % self.bitmap_rgba()
+
+    def int_rgb(self):
+        v = self.bitmap_rgb()
+        return v[0]<<16|v[1]<<8|v[2]
+
+    def int_rgba(self):
+        v = self.bitmap_rgba()
+        return int((v[0]<<24|v[1]<<16|v[2]<<8|v[3])&0xffffff)
 
     _cKwds='red green blue alpha'.split()
     def cKwds(self):
@@ -708,6 +716,8 @@ def hsl2rgb(h, s, l):
     m1 = l*2-m2
     return hue2rgb(m1, m2, h+1./3),hue2rgb(m1, m2, h),hue2rgb(m1, m2, h-1./3)
 
+import re
+_re_css = re.compile(r'^\s*(pcmyk|cmyk|rgb|hsl)(a|)\s*\(\s*([^)]*)\)\s*$')
 class cssParse:
     def pcVal(self,v):
         v = v.strip()
@@ -748,32 +758,16 @@ class cssParse:
         except:
             raise ValueError('bad %s argument value %r in css color %r' % (n,v,self.s))
 
+    _n_c = dict(pcmyk=(4,100,True,False),cmyk=(4,1,True,False),hsl=(3,1,False,True),rgb=(3,1,False,False))
+
     def __call__(self,s):
-        s = s.strip()
-        hsl = s.startswith('hsl')
-        rgb = s.startswith('rgb')
-        cmyk = s.startswith('cmyk')
-        c = 1
-        if hsl: n = 3
-        if rgb: n = 3
-        if cmyk:
-            n = 4
-        else:
-            cmyk = s.startswith('pcmyk')
-            if cmyk:
-                n = 5
-                c = 100
-        if not (rgb or hsl or cmyk): return None
+        n = _re_css.match(s)
+        if not n: return
         self.s = s
-        n = s[n:]
-        ha = n.startswith('a')
-        n = n[(ha and 1 or 0):].strip()
-        if not n.startswith('(') or not n.endswith(')'):
-            raise ValueError('improperly formatted css style color %r' % s)
-        n = n[1:-1].split(',')  #strip parens and split on comma
-        a = len(n)
-        b = cmyk and 4 or 3
-        if ha and a!=(b+1) or not ha and a!=b:
+        b,c,cmyk,hsl = self._n_c[n.group(1)]
+        ha = n.group(2)
+        n = n.group(3).split(',')   #strip parens and split on comma
+        if len(n)!=(b+(ha and 1 or 0)):
             raise ValueError('css color %r has wrong number of components' % s)
         if ha:
             n,a = n[:b],self.alphaVal(n[b],c)
@@ -807,26 +801,6 @@ class toColor:
 
     def __call__(self,arg,default=None):
         '''try to map an arbitrary arg to a color instance
-        >>> toColor('rgb(128,0,0)')==toColor('rgb(50%,0%,0%)')
-        True
-        >>> toColor('rgb(50%,0%,0%)')!=Color(0.5,0,0,1)
-        True
-        >>> toColor('hsl(0,100%,50%)')==toColor('rgb(255,0,0)')
-        True
-        >>> toColor('hsl(-120,100%,50%)')==toColor('rgb(0,0,255)')
-        True
-        >>> toColor('hsl(120,100%,50%)')==toColor('rgb(0,255,0)')
-        True
-        >>> toColor('rgba(255,0,0,0.5)')==Color(1,0,0,0.5)
-        True
-        >>> toColor('cmyk(1,0,0,0)')==CMYKColor(1,0,0,0)
-        True
-        >>> toColor('pcmyk(100,0,0,0)')==PCMYKColor(100,0,0,0)
-        True
-        >>> toColor('cmyka(1,0,0,0,0.5)')==CMYKColor(1,0,0,0,alpha=0.5)
-        True
-        >>> toColor('pcmyka(100,0,0,0,0.5)')==PCMYKColor(100,0,0,0,alpha=0.5)
-        True
         '''
         if isinstance(arg,Color): return arg
         if isinstance(arg,(tuple,list)):
@@ -915,7 +889,6 @@ def Blacker(c,f):
     elif isinstance(c,CMYKColor): b = _CMYK_black
     else: b = black
     return linearlyInterpolatedColor(b, c, 0, 1, f)
-
 
 def fade(aSpotColor, percentages):
     """Waters down spot colors and returns a list of new ones

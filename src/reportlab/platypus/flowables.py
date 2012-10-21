@@ -1,7 +1,7 @@
-#Copyright ReportLab Europe Ltd. 2000-2004
+#Copyright ReportLab Europe Ltd. 2000-2012
 #see license.txt for license details
 #history http://www.reportlab.co.uk/cgi-bin/viewcvs.cgi/public/reportlab/trunk/reportlab/platypus/flowables.py
-__version__=''' $Id: flowables.py 3753 2010-08-06 15:55:36Z juraj $ '''
+__version__=''' $Id: flowables.py 3959 2012-09-27 14:39:39Z robin $ '''
 __doc__="""
 A flowable is a "floating element" in a document whose exact position is determined by the
 other elements that precede it, such as a paragraph, a diagram interspersed between paragraphs,
@@ -37,6 +37,7 @@ from reportlab.rl_config import _FUZZ, overlapAttachedSpace, ignoreContainerActi
 __all__=('TraceInfo','Flowable','XBox','Preformatted','Image','Spacer','PageBreak','SlowPageBreak',
         'CondPageBreak','KeepTogether','Macro','CallerMacro','ParagraphAndImage',
         'FailOnWrap','HRFlowable','PTOContainer','KeepInFrame','UseUpSpace',
+        'ListFlowable','ListItem','DDIndenter','LIIndenter',
         'DocAssign', 'DocExec', 'DocAssert', 'DocPara', 'DocIf', 'DocWhile',
         )
 class TraceInfo:
@@ -242,12 +243,72 @@ def _dedenter(text,dedent=0):
 
     return lines
 
+
+SPLIT_CHARS = "[{( ,.;:/\\-"
+
+def splitLines(lines, maximum_length, split_characters, new_line_characters):
+    if split_characters is None:
+        split_characters = SPLIT_CHARS
+    if new_line_characters is None:
+        new_line_characters = ""
+    # Return a table of lines
+    lines_splitted = []
+    for line in lines:
+        if len(line) > maximum_length:
+            splitLine(line, lines_splitted, maximum_length, \
+            split_characters, new_line_characters)
+        else:
+            lines_splitted.append(line)
+    return lines_splitted
+
+def splitLine(line_to_split, lines_splitted, maximum_length, \
+split_characters, new_line_characters):
+    # Used to implement the characters added 
+    #at the beginning of each new line created
+    first_line = True
+
+    # Check if the text can be splitted
+    while line_to_split and len(line_to_split)>0:
+
+        # Index of the character where we can split
+        split_index = 0
+
+        # Check if the line length still exceeds the maximum length
+        if len(line_to_split) <= maximum_length:
+            # Return the remaining of the line                
+            split_index = len(line_to_split)
+        else:
+            # Iterate for each character of the line
+            for line_index in range(maximum_length):
+                # Check if the character is in the list
+                # of allowed characters to split on
+                if line_to_split[line_index] in split_characters:
+                    split_index = line_index + 1
+        
+        # If the end of the line was reached
+        # with no character to split on
+        if split_index==0:
+            split_index = line_index + 1
+
+        if first_line:
+            lines_splitted.append(line_to_split[0:split_index])
+            first_line = False
+            maximum_length -= len(new_line_characters)
+        else:
+            lines_splitted.append(new_line_characters + \
+            line_to_split[0:split_index])
+        
+        # Remaining text to split
+        line_to_split = line_to_split[split_index:]
+
 class Preformatted(Flowable):
     """This is like the HTML <PRE> tag.
     It attempts to display text exactly as you typed it in a fixed width "typewriter" font.
-    The line breaks are exactly where you put
-    them, and it will not be wrapped."""
-    def __init__(self, text, style, bulletText = None, dedent=0):
+    By default the line breaks are exactly where you put them, and it will not be wrapped.
+    You can optionally define a maximum line length and the code will be wrapped; and 
+    extra characters to be inserted at the beginning of each wrapped line (e.g. '> ').
+    """
+    def __init__(self, text, style, bulletText = None, dedent=0, maxLineLength=None, splitChars=None, newLineChars=""):
         """text is the text to display. If dedent is set then common leading space
         will be chopped off the front (for example if the entire text is indented
         6 spaces or more then each line will have 6 spaces removed from the front).
@@ -255,6 +316,13 @@ class Preformatted(Flowable):
         self.style = style
         self.bulletText = bulletText
         self.lines = _dedenter(text,dedent)
+        if text and maxLineLength:
+            self.lines = splitLines(
+                                self.lines, 
+                                maxLineLength, 
+                                splitChars, 
+                                newLineChars
+                        )
 
     def __repr__(self):
         bT = self.bulletText
@@ -436,8 +504,11 @@ class Spacer(NullDraw):
        a gap between objects."""
     _fixedWidth = 1
     _fixedHeight = 1
-    def __init__(self, width, height):
+    def __init__(self, width, height, isGlue=False):
         self.width = width
+        if isGlue:
+            self.height = 1e-4
+            self.spacebefore = height
         self.height = height
 
     def __repr__(self):
@@ -569,8 +640,10 @@ class KeepTogether(_ContainerSpace,Flowable):
     def split(self, aW, aH):
         if getattr(self,'_wrapInfo',None)!=(aW,aH): self.wrap(aW,aH)
         S = self._content[:]
+        atTop = getattr(self,'_frame',None)
+        if atTop: atTop = getattr(atTop,'_atTop',None)
         C0 = self._H>aH and (not self._maxHeight or aH>self._maxHeight)
-        C1 = self._H0>aH
+        C1 = (self._H0>aH) or C0 and atTop
         if C0 or C1:
             if C0:
                 from reportlab.platypus.doctemplate import FrameBreak
@@ -1063,7 +1136,7 @@ class ImageAndFlowables(_Container,Flowable):
         aH = itpad + hI + ibpad
         W,H0,self._C0,self._C1 = self._findSplit(canv,self._iW,aH)
         if W>self._iW+_FUZZ:
-            self._C0 = None
+            self._C0 = []
             self._C1 = self._content
         aH = self._aH = max(aH,H0)
         self.width = availWidth
@@ -1084,19 +1157,23 @@ class ImageAndFlowables(_Container,Flowable):
         if self._aH>availHeight: return []
         C1 = self._C1
         if C1:
-            c0 = C1[0]
-            S = c0.split(availWidth,availHeight-self._aH)
+            S = C1[0].split(availWidth,availHeight-self._aH)
             if not S:
-                self._C1 = []
-                self.height = self._aH
+                _C1 = []
             else:
-                self._C1 = [S[0]]
-                self.height = self._aH + S[0].height
+                _C1 = [S[0]]
                 C1 = S[1:]+C1[1:]
         else:
-            self._C1 = []
-            self.height = self._aH
-        return [self]+C1
+            _C1 = []
+        return [ImageAndFlowables(
+                    self._I,
+                    self._C0+_C1,
+                    imageLeftPadding=self._ilpad,
+                    imageRightPadding=self._irpad,
+                    imageTopPadding=self._itpad,
+                    imageBottomPadding=self._ibpad,
+                    imageSide=self._side, imageHref=self.imageHref)
+                    ]+C1
 
     def drawOn(self, canv, x, y, _sW=0):
         if self._side=='left':
@@ -1221,6 +1298,456 @@ class FrameSplitter(NullDraw):
             G.append(CurrentFrameFlowable(F[0].id))
         frame.add_generated_content(*G)
         return 0,0
+
+
+from reportlab.lib.sequencer import _type2formatter
+_bulletNames = dict(
+                circle=u'\u25cf',
+                square=u'\u25a0',
+                disc=u'\u25cf',
+                diamond=u'\u25c6',
+                rarrowhead=u'\u27a4',
+                )
+
+def _bulletFormat(value,type='1',format=None):
+    if type=='bullet':
+        s = _bulletNames.get(value,value)
+    else:
+        s = _type2formatter[type](int(value))
+
+    if format:
+        if isinstance(format,basestring):
+            s = format % s
+        elif callable(format):
+            s = format(s)
+        else:
+            raise ValueError('unexpected BulletDrawer format %r' % format)
+    return s
+
+class BulletDrawer:
+    def __init__(self,
+                    value='0',
+                    bulletAlign='left',
+                    bulletType='1',
+                    bulletColor='black',
+                    bulletFontName='Helvetica',
+                    bulletFontSize=12,
+                    bulletOffsetY=0,
+                    bulletDedent=0,
+                    bulletDir='ltr',
+                    bulletFormat=None,
+                    ):
+        self.value = value
+        self._bulletAlign = bulletAlign
+        self._bulletType = bulletType
+        self._bulletColor = bulletColor
+        self._bulletFontName = bulletFontName
+        self._bulletFontSize = bulletFontSize
+        self._bulletOffsetY = bulletOffsetY
+        self._bulletDedent = bulletDedent
+        self._bulletDir = bulletDir
+        self._bulletFormat = bulletFormat
+
+    def drawOn(self,indenter,canv,x,y,_sW=0):
+        value = self.value
+        if not value: return
+        canv.saveState()
+        canv.translate(x, y)
+
+        y = indenter.height-self._bulletFontSize+self._bulletOffsetY
+        if self._bulletDir=='rtl':
+            x = indenter.width - indenter._rightIndent + self._bulletDedent
+        else:
+            x = indenter._leftIndent - self._bulletDedent
+        canv.setFont(self._bulletFontName,self._bulletFontSize)
+        canv.setFillColor(self._bulletColor)
+        bulletAlign = self._bulletAlign
+        value = _bulletFormat(value,self._bulletType,self._bulletFormat)
+
+        if bulletAlign=='left':
+            canv.drawString(x,y,value)
+        elif bulletAlign=='right':
+            canv.drawRightString(x,y,value)
+        elif bulletAlign in ('center','centre'):
+            canv.drawCentredString(x,y,value)
+        elif bulletAlign.startswith('numeric') or bulletAlign.startswith('decimal'):
+            pc = bulletAlign[7:].strip() or '.'
+            canv.drawAlignedString(x,y,value,pc)
+        else:
+            raise ValueError('Invalid bulletAlign: %r' % bulletAlign)
+        canv.restoreState()
+
+def _computeBulletWidth(b,value):
+    value = _bulletFormat(value,b._bulletType,b._bulletFormat)
+    return stringWidth(value,b._bulletFontName,b._bulletFontSize)
+
+class DDIndenter(Flowable):
+    _IndenterAttrs = '_flowable _leftIndent _rightIndent width height'.split()
+    def __init__(self,flowable,leftIndent=0,rightIndent=0):
+        self._flowable = flowable
+        self._leftIndent = leftIndent
+        self._rightIndent = rightIndent
+        self.width = None
+        self.height = None
+
+    def split(self, aW, aH):
+        S = self._flowable.split(aW-self._leftIndent-self._rightIndent, aH)
+        return [
+                DDIndenter(s,
+                        leftIndent=self._leftIndent,
+                        rightIndent=self._rightIndent,
+                        ) for s in S
+                ]
+
+    def drawOn(self, canv, x, y, _sW=0):
+        self._flowable.drawOn(canv,x+self._leftIndent,y,max(0,_sW-self._leftIndent-self._rightIndent))
+
+    def wrap(self, aW, aH):
+        w,h = self._flowable.wrap(aW-self._leftIndent-self._rightIndent, aH)
+        self.width = w+self._leftIndent+self._rightIndent
+        self.height = h
+        return self.width,h
+
+    def __getattr__(self,a):
+        if a in self._IndenterAttrs:
+            try:
+                return self.__dict__[a]
+            except KeyError:
+                if a not in ('spaceBefore','spaceAfter'):
+                    raise
+        return getattr(self._flowable,a)
+
+    def __setattr__(self,a,v):
+        if a in self._IndenterAttrs:
+            self.__dict__[a] = v
+        else:
+            setattr(self._flowable,a,v)
+
+    def __delattr__(self,a):
+        if a in self._IndenterAttrs:
+            del self.__dict__[a]
+        else:
+            delattr(self._flowable,a)
+
+    def identity(self,maxLen=None):
+        return '%s containing %s' % (self.__class__.__name__,self._flowable.identity(maxLen))
+
+class LIIndenter(DDIndenter):
+    _IndenterAttrs = '_flowable _bullet _leftIndent _rightIndent width height spaceBefore spaceAfter'.split()
+    def __init__(self,flowable,leftIndent=0,rightIndent=0,bullet=None, spaceBefore=None, spaceAfter=None):
+        self._flowable = flowable
+        self._bullet = bullet
+        self._leftIndent = leftIndent
+        self._rightIndent = rightIndent
+        self.width = None
+        self.height = None
+        if spaceBefore is not None:
+            self.spaceBefore = spaceBefore
+        if spaceAfter is not None:
+            self.spaceAfter = spaceAfter
+
+    def split(self, aW, aH):
+        S = self._flowable.split(aW-self._leftIndent-self._rightIndent, aH)
+        return [
+                LIIndenter(s,
+                        leftIndent=self._leftIndent,
+                        rightIndent=self._rightIndent,
+                        bullet = (s is S[0] and self._bullet or None),
+                        ) for s in S
+                ]
+
+    def drawOn(self, canv, x, y, _sW=0):
+        if self._bullet:
+            self._bullet.drawOn(self,canv,x,y,0)
+        self._flowable.drawOn(canv,x+self._leftIndent,y,max(0,_sW-self._leftIndent-self._rightIndent))
+
+
+from reportlab.lib.styles import ListStyle
+class ListItem:
+    def __init__(self,
+                    flowables,  #the initial flowables
+                    style=None,
+                    #leftIndent=18,
+                    #rightIndent=0,
+                    #spaceBefore=None,
+                    #spaceAfter=None,
+                    #bulletType='1',
+                    #bulletColor='black',
+                    #bulletFontName='Helvetica',
+                    #bulletFontSize=12,
+                    #bulletOffsetY=0,
+                    #bulletDedent='auto',
+                    #bulletDir='ltr',
+                    #bulletFormat=None,
+                    **kwds
+                    ):
+        if not isinstance(flowables,(list,tuple)):
+            flowables = (flowables,)
+        self._flowables = flowables
+        params = self._params = {}
+
+        if style:
+            if not isinstance(style,ListStyle):
+                raise ValueError('%s style argument (%r) not a ListStyle' % (self.__class__.__name__,style))
+            self._style = style
+
+        for k in ListStyle.defaults:
+            if k in kwds:
+                v = kwds.get(k)
+            elif style:
+                v = getattr(style,k)
+            else:
+                continue
+            params[k] = v
+
+        for k in ('value', 'spaceBefore','spaceAfter'):
+            v = kwds.get(k,getattr(style,k,None))
+            if v is not None:
+                params[k] = v
+
+class _LIParams:
+    def __init__(self,flowable,params,value,first):
+        self.flowable = flowable
+        self.params = params
+        self.value = value
+        self.first= first
+
+class ListFlowable(_Container,Flowable):
+    def __init__(self,
+                    flowables,  #the initial flowables
+                    start=1,
+                    style=None,
+                    #leftIndent=18,
+                    #rightIndent=0,
+                    #spaceBefore=None,
+                    #spaceAfter=None,
+                    #bulletType='1',
+                    #bulletColor='black',
+                    #bulletFontName='Helvetica',
+                    #bulletFontSize=12,
+                    #bulletOffsetY=0,
+                    #bulletDedent='auto',
+                    #bulletDir='ltr',
+                    #bulletFormat=None,
+                    **kwds
+                    ):
+        self._flowables = flowables
+
+        if style:
+            if not isinstance(style,ListStyle):
+                raise ValueError('%s style argument not a ListStyle' % self.__class__.__name__)
+            self.style = style
+
+        for k,v in ListStyle.defaults.iteritems():
+            setattr(self,'_'+k,kwds.get(k,getattr(style,k,v)))
+        if start is None:
+            start = getattr(self,'_start',None)
+            if start is None:
+                if getattr(self,'_bulletType','1')=='bullet':
+                    start = 'circle'
+                else:
+                    start = '1'
+        self._start = start
+
+        for k in ('spaceBefore','spaceAfter'):
+            v = kwds.get(k,getattr(style,k,None))
+            if v is not None:
+                setattr(self,k,v)
+
+        self._content = self._getContent()
+        del self._flowables
+        self._dims = None
+
+    def wrap(self,aW,aH):
+        if self._dims!=aW:
+            self.width, self.height = _listWrapOn(self._content,aW,self.canv)
+            self._dims = aW
+        return self.width,self.height
+
+    def split(self,aW,aH):
+        return self._content
+
+    def _flowablesIter(self):
+        for f in self._flowables:
+            if isinstance(f,(list,tuple)):
+                if f:
+                    for i, z in enumerate(f):
+                        yield i==0 and not isinstance(z,LIIndenter), z
+            elif isinstance(f,ListItem):
+                params = f._params
+                if not params:
+                    #meerkat simples just a list like object
+                    for i, z in enumerate(f._flowables):
+                        if isinstance(z,LIIndenter):
+                            raise ValueError('LIIndenter not allowed in ListItem')
+                        yield i==0, z
+                else:
+                    params = params.copy()
+                    value = params.pop('value',None)
+                    spaceBefore = params.pop('spaceBefore',None)
+                    spaceAfter = params.pop('spaceAfter',None)
+                    n = len(f._flowables) - 1
+                    for i, z in enumerate(f._flowables):
+                        P = params.copy()
+                        if not i and spaceBefore is not None:
+                            P['spaceBefore'] = spaceBefore
+                        if i==n and spaceAfter is not None:
+                            P['spaceAfter'] = spaceAfter
+                        if i: value=None
+                        yield 0, _LIParams(z,P,value,i==0)
+            else:
+                yield not isinstance(f,LIIndenter), f
+
+    def _makeLIIndenter(self,flowable, bullet, params=None):
+        if params:
+            leftIndent = params.get('leftIndent',self._leftIndent)
+            rightIndent = params.get('rightIndent',self._rightIndent)
+            spaceBefore = params.get('spaceBefore',None)
+            spaceAfter = params.get('spaceAfter',None)
+            return LIIndenter(flowable,leftIndent,rightIndent,bullet,spaceBefore=spaceBefore,spaceAfter=spaceAfter)
+        else:
+            return LIIndenter(flowable,self._leftIndent,self._rightIndent,bullet)
+
+    def _makeBullet(self,value,params=None):
+        if params is None:
+            def getp(a):
+                return getattr(self,'_'+a)
+        else:
+            style = getattr(params,'style',None)
+            def getp(a):
+                if a in params: return params[a]
+                if style and a in style.__dict__: return getattr(self,a)
+                return getattr(self,'_'+a)
+
+        return BulletDrawer(
+                    value=value,
+                    bulletAlign=getp('bulletAlign'),
+                    bulletType=getp('bulletType'),
+                    bulletColor=getp('bulletColor'),
+                    bulletFontName=getp('bulletFontName'),
+                    bulletFontSize=getp('bulletFontSize'),
+                    bulletOffsetY=getp('bulletOffsetY'),
+                    bulletDedent=getp('calcBulletDedent'),
+                    bulletDir=getp('bulletDir'),
+                    bulletFormat=getp('bulletFormat'),
+                    )
+
+    def _getContent(self):
+        value = self._start
+        bt = self._bulletType
+        inc = int(bt in '1aAiI')
+        if inc: value = int(value)
+
+        bd = self._bulletDedent
+        if bd=='auto':
+            align = self._bulletAlign
+            dir = self._bulletDir
+            if dir=='ltr' and align=='left':
+                bd = self._leftIndent
+            elif align=='right':
+                bd = self._rightIndent
+            else:
+                #we need to work out the maximum width of any of the labels
+                tvalue = value
+                maxW = 0
+                for d,f in self._flowablesIter():
+                    if d:
+                        maxW = max(maxW,_computeBulletWidth(self,tvalue))
+                        if inc: tvalue += inc
+                    elif isinstance(f,LIIndenter):
+                        b = f._bullet
+                        if b:
+                            if b.bulletType==bt:
+                                maxW = max(maxW,_computeBulletWidth(b,b.value))
+                                tvalue = int(b.value)
+                        else:
+                            maxW = max(maxW,_computeBulletWidth(self,tvalue))
+                        if inc: tvalue += inc
+                if dir=='ltr':
+                    if align=='right':
+                        bd = self._leftIndent - maxW
+                    else:
+                        bd = self._leftIndent - maxW*0.5
+                elif align=='left':
+                    bd = self._rightIndent - maxW
+                else:
+                    bd = self._rightIndent - maxW*0.5
+
+        self._calcBulletDedent = bd
+
+        S = []
+        aS = S.append
+        i=0
+        for d,f in self._flowablesIter():
+            fparams = {}
+            if not i:
+                i += 1
+                spaceBefore = getattr(self,'spaceBefore',None)
+                if spaceBefore is not None:
+                    fparams['spaceBefore'] = spaceBefore
+            if d:
+                aS(self._makeLIIndenter(f,bullet=self._makeBullet(value),params=fparams))
+                if inc: value += inc
+            elif isinstance(f,LIIndenter):
+                b = f._bullet
+                if b:
+                    if b.bulletType!=bt:
+                        raise ValueError('Included LIIndenter bulletType=%s != OrderedList bulletType=%s' % (b.bulletType,bt))
+                    value = int(b.value)
+                else:
+                    f._bullet = self._makeBullet(value,params=getattr(f,'params',None))
+                if fparams:
+                    f.__dict__['spaceBefore'] = max(f.__dict__.get('spaceBefore',0),spaceBefore)
+                aS(f)
+                if inc: value += inc
+            elif isinstance(f,_LIParams):
+                fparams.update(f.params)
+                z = self._makeLIIndenter(f.flowable,bullet=None,params=fparams)
+                if f.first:
+                    if f.value is not None:
+                        value = f.value
+                        if inc: value = int(value)
+                    z._bullet = self._makeBullet(value,f.params)
+                    if inc: value += inc
+                aS(z)
+            else:
+                aS(self._makeLIIndenter(f,bullet=None,params=fparams))
+
+        spaceAfter = getattr(self,'spaceAfter',None)
+        if spaceAfter is not None:
+            f=S[-1]
+            f.__dict__['spaceAfter'] = max(f.__dict__.get('spaceAfter',0),spaceAfter)
+        return S
+
+class TopPadder(Flowable):
+    '''wrap a single flowable so that its first bit will be
+    padded to fill out the space so that it appears at the
+    bottom of its frame'''
+    def __init__(self,f):
+        self.__dict__['_TopPadder__f'] = f
+
+    def wrap(self,aW,aH):
+        w,h = self.__f.wrap(aW,aH)
+        self.__dict__['_TopPadder__dh'] = aH-h
+        return w,h
+
+    def split(self,aW,aH):
+        S = self.__f.split(aW,aH)
+        if len(S)>1:
+            S[0] = TopPadder(S[0])
+        return S
+
+    def drawOn(self, canvas, x, y, _sW=0):
+        self.__f.drawOn(canvas,x,y-max(0,self.__dh-1e-8),_sW)
+
+    def __setattr__(self,a,v):
+        setattr(self.__f,a,v)
+
+    def __getattr__(self,a):
+        return getattr(self.__f,a)
+
+    def __delattr__(self,a):
+        delattr(self.__f,a)
 
 class DocAssign(NullDraw):
     '''At wrap time this flowable evaluates var=expr in the doctemplate namespace'''

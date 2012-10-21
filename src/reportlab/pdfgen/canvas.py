@@ -1,6 +1,6 @@
-#Copyright ReportLab Europe Ltd. 2000-2008
+#Copyright ReportLab Europe Ltd. 2000-2012
 #see license.txt for license details
-__version__=''' $Id: canvas.py 3791 2010-09-29 19:37:05Z andy $ '''
+__version__=''' $Id: canvas.py 3959 2012-09-27 14:39:39Z robin $ '''
 __doc__="""
 The Canvas object is the primary interface for creating PDF files. See
 doc/reportlab-userguide.pdf for copious examples.
@@ -69,6 +69,71 @@ def _annFormat(D,color,thickness,dashArray,hradius=0,vradius=0):
 #   BS['W'] = thickness or 0
 #   BS['S'] = bss
 #   D['BS'] = BS
+
+# helpers to guess color space for gradients
+def _normalizeColor(aColor):
+    if isinstance(aColor, CMYKColor):
+        d = aColor.density
+        return "DeviceCMYK", tuple(c*d for c in aColor.cmyk())
+    elif isinstance(aColor, Color):
+        return "DeviceRGB", aColor.rgb()
+    elif isinstance(aColor, (tuple, list)):
+        l = len(aColor)
+        if l == 3:
+            return "DeviceRGB", aColor
+        elif l == 4:
+            return "DeviceCMYK", aColor
+    elif isinstance(aColor, basestring):
+        return _normalizeColor(toColor(aColor))
+    raise ValueError("Unknown color %r" % aColor)
+
+def _normalizeColors(colors):
+    space = None
+    outcolors = []
+    for aColor in colors:
+        nspace, outcolor = _normalizeColor(aColor)
+        if space is not None and space != nspace:
+            raise ValueError("Mismatch in color spaces: %s and %s" % (space, nspace))
+        space = nspace
+        outcolors.append(outcolor)
+    return space, outcolors
+
+def _buildColorFunction(colors, positions):
+    from reportlab.pdfbase.pdfdoc import PDFExponentialFunction, PDFStitchingFunction
+    if positions is not None and len(positions) != len(colors):
+        raise ValueError("need to have the same number of colors and positions")
+    # simplified functions for edge cases
+    if len(colors) == 1:
+        # for completeness
+        return PDFExponentialFunction(N=1, C0=colors[0], C1=colors[0])
+    if len(colors) == 2:
+        if positions is None or (positions[0] == 0 and positions[1] == 1):
+            return PDFExponentialFunction(N=1, C0=colors[0], C1=colors[1])
+    # equally distribute if positions not specified
+    if positions is None:
+        nc = len(colors)
+        positions = [(1.0*x)/(nc-1) for x in range(nc)]
+    else:
+        # sort positions and colors in increasing order
+        poscolors = zip(positions, colors)
+        poscolors.sort(key=lambda x: x[0])
+        # add endpoint positions if not already present
+        if poscolors[0][0] != 0:
+            poscolors.insert(0, (0.0, poscolors[0][1]))
+        if poscolors[-1][0] != 1:
+            poscolors.append((1.0, poscolors[-1][1]))
+        positions, colors = zip(*poscolors) # unzip
+    # build stitching function
+    functions = []
+    bounds = [pos for pos in positions[1:-1]]
+    encode = []
+    lastcolor = colors[0]
+    for color in colors[1:]:
+        functions.append(PDFExponentialFunction(N=1, C0=lastcolor, C1=color))
+        lastcolor = color
+        encode.append(0.0)
+        encode.append(1.0)
+    return PDFStitchingFunction(functions, bounds, encode, Domain="[0.0 1.0]")
 
 class   ExtGState:
     defaults = dict(
@@ -579,6 +644,7 @@ class Canvas(textobject._PDFColorSetter):
         self._setColorSpace(page)
         self._setExtGState(page)
         self._setXObjects(page)
+        self._setShadingUsed(page)
         self._setAnnotations(page)
         self._doc.addPage(page)
 
@@ -604,6 +670,9 @@ class Canvas(textobject._PDFColorSetter):
 
     def _setColorSpace(self,obj):
         obj._colorsUsed = self._colorsUsed
+
+    def _setShadingUsed(self, page):
+        page._shadingUsed = self._shadingUsed
 
     def _setXObjects(self, thing):
         """for pages and forms, define the XObject dictionary for resources, if needed"""
@@ -891,7 +960,7 @@ class Canvas(textobject._PDFColorSetter):
             # restore the saved code
             saved = self._codeStack[-1]
             del self._codeStack[-1]
-            self._code, self._formsinuse, self._annotationrefs, self._formData,self._colorsUsed = saved
+            self._code, self._formsinuse, self._annotationrefs, self._formData,self._colorsUsed, self._shadingUsed = saved
         else:
             self._code = []    # ready for more...
             self._psCommandsAfterPage = []
@@ -900,10 +969,11 @@ class Canvas(textobject._PDFColorSetter):
             self._annotationrefs = []
             self._formData = None
             self._colorsUsed = {}
+            self._shadingUsed = {}
 
     def _pushAccumulators(self):
         "when you enter a form, save accumulator info not related to the form for page (if any)"
-        saved = (self._code, self._formsinuse, self._annotationrefs, self._formData, self._colorsUsed)
+        saved = (self._code, self._formsinuse, self._annotationrefs, self._formData, self._colorsUsed, self._shadingUsed)
         self._codeStack.append(saved)
         self._code = []    # ready for more...
         self._currentPageHasImages = 1 # for safety...
@@ -911,6 +981,7 @@ class Canvas(textobject._PDFColorSetter):
         self._annotationrefs = []
         self._formData = None
         self._colorsUsed = {}
+        self._shadingUsed = {}
 
     def _setExtGState(self, obj):
         obj.ExtGState = self._extgstate.getState()
@@ -1320,25 +1391,11 @@ class Canvas(textobject._PDFColorSetter):
         """Draw a partial ellipse inscribed within the rectangle x1,y1,x2,y2,
         starting at startAng degrees and covering extent degrees.   Angles
         start with 0 to the right (+x) and increase counter-clockwise.
-        These should have x1<x2 and y1<y2.
+        These should have x1<x2 and y1<y2."""
+        pathobject.PDFPathObject(code=self._code).arc(x1,y1,x2,y2,startAng,extent)
+        self._strokeAndFill(1,0)
 
-        Contributed to piddlePDF by Robert Kern, 28/7/99.
-        Trimmed down by AR to remove color stuff for pdfgen.canvas and
-        revert to positive coordinates.
-
-        The algorithm is an elliptical generalization of the formulae in
-        Jim Fitzsimmon's TeX tutorial <URL: http://www.tinaja.com/bezarc1.pdf>."""
-
-        pointList = pdfgeom.bezierArc(x1,y1, x2,y2, startAng, extent)
-        #move to first point
-        self._code.append('n %s m' % fp_str(pointList[0][:2]))
-        for curve in pointList:
-            self._code.append('%s c' % fp_str(curve[2:]))
-        # stroke
-        self._code.append('S')
-
-        #--------now the shape drawing methods-----------------------
-
+    #--------now the shape drawing methods-----------------------
     def rect(self, x, y, width, height, stroke=1, fill=0):
         "draws a rectangle with lower left corner at (x,y) and width and height as given."
         self._code.append('n %s re ' % fp_str(x, y, width, height)
@@ -1349,35 +1406,18 @@ class Canvas(textobject._PDFColorSetter):
 
         Note that (x1,y1) and (x2,y2) are the corner points of
         the enclosing rectangle.
-
-        Uses bezierArc, which conveniently handles 360 degrees.
-        Special thanks to Robert Kern."""
-
-        pointList = pdfgeom.bezierArc(x1,y1, x2,y2, 0, 360)
-        #move to first point
-        self._code.append('n %s m' % fp_str(pointList[0][:2]))
-        for curve in pointList:
-            self._code.append('%s c' % fp_str(curve[2:]))
-        #finish
-        self._code.append(PATH_OPS[stroke, fill, self._fillMode])
+        """
+        pathobject.PDFPathObject(code=self._code).ellipse(x1, y1, x2-x1, y2-y1)
+        self._strokeAndFill(stroke, fill)
 
     def wedge(self, x1,y1, x2,y2, startAng, extent, stroke=1, fill=0):
         """Like arc, but connects to the centre of the ellipse.
         Most useful for pie charts and PacMan!"""
-
-        x_cen  = (x1+x2)/2.
-        y_cen  = (y1+y2)/2.
-        pointList = pdfgeom.bezierArc(x1,y1, x2,y2, startAng, extent)
-
-        self._code.append('n %s m' % fp_str(x_cen, y_cen))
-        # Move the pen to the center of the rectangle
-        self._code.append('%s l' % fp_str(pointList[0][:2]))
-        for curve in pointList:
-            self._code.append('%s c' % fp_str(curve[2:]))
-        # finish the wedge
-        self._code.append('%s l ' % fp_str(x_cen, y_cen))
-        # final operator
-        self._code.append(PATH_OPS[stroke, fill, self._fillMode])
+        p = pathobject.PDFPathObject(code=self._code)
+        p.moveTo(0.5*(x1+x2),0.5*(y1+y2))
+        p.arcTo(x1,y1,x2,y2,startAng,extent)
+        p.close()
+        self._strokeAndFill(stroke,fill)
 
     def circle(self, x_cen, y_cen, r, stroke=1, fill=0):
         """draw a cirle centered at (x_cen,y_cen) with radius r (special case of ellipse)"""
@@ -1391,45 +1431,44 @@ class Canvas(textobject._PDFColorSetter):
     def roundRect(self, x, y, width, height, radius, stroke=1, fill=0):
         """Draws a rectangle with rounded corners.  The corners are
         approximately quadrants of a circle, with the given radius."""
-        #use a precomputed set of factors for the bezier approximation
-        #to a circle. There are six relevant points on the x axis and y axis.
-        #sketch them and it should all make sense!
-        t = 0.4472 * radius
+        #make the path operators draw into our code
+        pathobject.PDFPathObject(code=self._code).roundRect(x, y, width, height, radius)
+        self._strokeAndFill(stroke,fill)
 
-        x0 = x
-        x1 = x0 + t
-        x2 = x0 + radius
-        x3 = x0 + width - radius
-        x4 = x0 + width - t
-        x5 = x0 + width
+    def _addShading(self, shading):
+        name = self._doc.addShading(shading)
+        self._shadingUsed[name] = name
+        return name
 
-        y0 = y
-        y1 = y0 + t
-        y2 = y0 + radius
-        y3 = y0 + height - radius
-        y4 = y0 + height - t
-        y5 = y0 + height
+    def shade(self, shading):
+        name = self._addShading(shading)
+        self._code.append('/%s sh' % name)
 
-        self._code.append('n %s m' % fp_str(x2, y0))
-        self._code.append('%s l' % fp_str(x3, y0))  # bottom row
-        self._code.append('%s c'
-                         % fp_str(x4, y0, x5, y1, x5, y2)) # bottom right
+    def linearGradient(self, x0, y0, x1, y1, colors, positions=None, extend=True):
+        #this code contributed by Peter Johnson <johnson.peter@gmail.com>
+        from reportlab.pdfbase.pdfdoc import PDFAxialShading
+        colorSpace, ncolors = _normalizeColors(colors)
+        fcn = _buildColorFunction(ncolors, positions)
+        if extend:
+            extendStr = "[true true]"
+        else:
+            extendStr = "[false false]"
+        shading = PDFAxialShading(x0, y0, x1, y1, Function=fcn,
+                ColorSpace=colorSpace, Extend=extendStr)
+        self.shade(shading)
 
-        self._code.append('%s l' % fp_str(x5, y3))  # right edge
-        self._code.append('%s c'
-                         % fp_str(x5, y4, x4, y5, x3, y5)) # top right
-
-        self._code.append('%s l' % fp_str(x2, y5))  # top row
-        self._code.append('%s c'
-                         % fp_str(x1, y5, x0, y4, x0, y3)) # top left
-
-        self._code.append('%s l' % fp_str(x0, y2))  # left edge
-        self._code.append('%s c'
-                         % fp_str(x0, y1, x1, y0, x2, y0)) # bottom left
-
-        self._code.append('h')  #close off, although it should be where it started anyway
-
-        self._code.append(PATH_OPS[stroke, fill, self._fillMode])
+    def radialGradient(self, x, y, radius, colors, positions=None, extend=True):
+        #this code contributed by Peter Johnson <johnson.peter@gmail.com>
+        from reportlab.pdfbase.pdfdoc import PDFRadialShading
+        colorSpace, ncolors = _normalizeColors(colors)
+        fcn = _buildColorFunction(ncolors, positions)
+        if extend:
+            extendStr = "[true true]"
+        else:
+            extendStr = "[false false]"
+        shading = PDFRadialShading(x, y, 0.0, x, y, radius, Function=fcn,
+                ColorSpace=colorSpace, Extend=extendStr)
+        self.shade(shading)
 
         ##################################################
         #
@@ -1611,10 +1650,11 @@ class Canvas(textobject._PDFColorSetter):
 
     def drawPath(self, aPath, stroke=1, fill=0):
         "Draw the path object in the mode indicated"
-        gc = aPath.getCode(); pathops = PATH_OPS[stroke, fill, self._fillMode]
-        item = "%s %s" % (gc, pathops) # ENSURE STRING CONVERSION
-        self._code.append(item)
-        #self._code.append(aPath.getCode() + ' ' + PATH_OPS[stroke, fill, self._fillMode])
+        self._code.append(str(aPath.getCode()))
+        self._strokeAndFill(stroke,fill)
+
+    def _strokeAndFill(self,stroke,fill):
+        self._code.append(PATH_OPS[stroke, fill, self._fillMode])
 
     def clipPath(self, aPath, stroke=1, fill=0):
         "clip as well as drawing"

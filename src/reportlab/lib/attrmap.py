@@ -1,7 +1,7 @@
-#Copyright ReportLab Europe Ltd. 2000-2004
+#Copyright ReportLab Europe Ltd. 2000-2012
 #see license.txt for license details
 #history http://www.reportlab.co.uk/cgi-bin/viewcvs.cgi/public/reportlab/trunk/reportlab/lib/attrmap.py
-__version__=''' $Id: attrmap.py 3660 2010-02-08 18:17:33Z damian $ '''
+__version__=''' $Id: attrmap.py 3959 2012-09-27 14:39:39Z robin $ '''
 __doc__='''Framework for objects whose assignments are checked. Used by graphics.
 
 We developed reportlab/graphics prior to Python 2 and metaclasses. For the

@@ -1,13 +1,17 @@
-#Copyright ReportLab Europe Ltd. 2000-2004
+#Copyright ReportLab Europe Ltd. 2000-2012
 #see license.txt for license details
 #history http://www.reportlab.co.uk/cgi-bin/viewcvs.cgi/public/reportlab/trunk/reportlab/graphics/charts/utils.py
 
-__version__=''' $Id: utils.py 3746 2010-07-21 10:32:55Z rgbecker $ '''
+__version__=''' $Id: utils.py 3959 2012-09-27 14:39:39Z robin $ '''
 __doc__="Utilities used here and there."
 from time import mktime, gmtime, strftime
+from math import log10, pi, floor, sin, cos, sqrt, hypot
+import weakref
+from reportlab.graphics.shapes import transformPoint, transformPoints, inverse, Ellipse, Group, String, Path
+from reportlab.lib.utils import flatten
+from reportlab.pdfbase.pdfmetrics import stringWidth
 
 ### Dinu's stuff used in some line plots (likely to vansih).
-
 def mkTimeTuple(timeString):
     "Convert a 'dd/mm/yyyy' formatted string to a tuple for use in the time module."
 
@@ -17,23 +21,17 @@ def mkTimeTuple(timeString):
 
     return tuple(list)
 
-
 def str2seconds(timeString):
     "Convert a number of seconds since the epoch into a date string."
 
     return mktime(mkTimeTuple(timeString))
-
 
 def seconds2str(seconds):
     "Convert a date string into the number of seconds since the epoch."
 
     return strftime('%Y-%m-%d', gmtime(seconds))
 
-
 ### Aaron's rounding function for making nice values on axes.
-
-from math import log10
-
 def nextRoundNumber(x):
     """Return the first 'nice round number' greater than or equal to x
 
@@ -72,15 +70,8 @@ def nextRoundNumber(x):
         else:
             return base * 10.0
 
-
-### Robin's stuff from rgb_ticks.
-
-from math import log10, floor
-
 _intervals=(.1, .2, .25, .5)
 _j_max=len(_intervals)-1
-
-
 def find_interval(lo,hi,I=5):
     'determine tick parameters for range [lo, hi] using I intervals'
 
@@ -128,7 +119,6 @@ def find_interval(lo,hi,I=5):
             b = b*10
     return n, x, ss, lo - n + x - hi
 
-
 def find_good_grid(lower,upper,n=(4,5,6,7,8,9), grid=None):
     if grid:
         t = divmod(lower,grid)[0] * grid
@@ -148,7 +138,6 @@ def find_good_grid(lower,upper,n=(4,5,6,7,8,9), grid=None):
                 t, hi, grid = z[:3]
                 w=z[3]
     return t, hi, grid
-
 
 def ticks(lower, upper, n=(4,5,6,7,8,9), split=1, percent=0, grid=None, labelVOffset=0):
     '''
@@ -223,9 +212,6 @@ def maverage(data,n=6):
 def pairMaverage(data,n=6):
     return [(x[0],s) for x,s in zip(data, maverage([x[1] for x in data],n))]
 
-import weakref
-from reportlab.graphics.shapes import transformPoint, transformPoints, inverse, Ellipse
-from reportlab.lib.utils import flatten
 class DrawTimeCollector(object):
     '''
     generic mechanism for collecting information about nodes at the time they are about to be drawn
@@ -311,3 +297,66 @@ class DrawTimeCollector(object):
             pprint.pprint(self._info,f)
         finally:
             f.close()
+
+def xyDist( (x0,y0),(x1,y1) ):
+    '''return distance between two points'''
+    return hypot((x1-x0),(y1-y0))
+
+def lineSegmentIntersect(
+                (x00,y00),(x01,y01),
+                (x10,y10),(x11,y11)
+                ):
+    p = x00,y00
+    r = x01-x00,y01-y00
+
+    
+    q = x10,y10
+    s = x11-x10,y11-y10
+
+    rs = float(r[0]*s[1]-r[1]*s[0])
+    qp = q[0]-p[0],q[1]-p[1]
+
+    qpr = qp[0]*r[1]-qp[1]*r[0]
+    qps = qp[0]*s[1]-qp[1]*s[0]
+
+    if abs(rs)<1e-8:
+        if abs(qpr)<1e-8: return 'collinear'
+        return None
+
+    t = qps/rs
+    u = qpr/rs
+
+    if 0<=t<=1 and 0<=u<=1:
+        return p[0]+t*r[0], p[1]+t*r[1]
+
+def makeCircularString(x, y, radius, angle, text, fontName, fontSize, inside=0, G=None,textAnchor='start'):
+    '''make a group with circular text in it'''
+    if not G: G = Group()
+
+    angle %= 360
+    pi180 = pi/180
+    phi = angle*pi180
+    width = stringWidth(text, fontName, fontSize)
+    sig = inside and -1 or 1
+    hsig = sig*0.5
+    sig90 = sig*90
+
+    if textAnchor!='start':
+        if textAnchor=='middle':
+            phi += sig*(0.5*width)/radius
+        elif textAnchor=='end':
+            phi += sig*float(width)/radius
+        elif textAnchor=='numeric':
+            phi += sig*float(numericXShift(textAnchor,text,width,fontName,fontSize,None))/radius
+
+    for letter in text:
+        width = stringWidth(letter, fontName, fontSize)
+        beta = float(width)/radius
+        h = Group()
+        h.add(String(0, 0, letter, fontName=fontName,fontSize=fontSize,textAnchor="start"))
+        h.translate(x+cos(phi)*radius,y+sin(phi)*radius)    #translate to radius and angle
+        h.rotate((phi-hsig*beta)/pi180-sig90)               # rotate as needed
+        G.add(h)                                            #add to main group
+        phi -= sig*beta                                     #increment
+
+    return G

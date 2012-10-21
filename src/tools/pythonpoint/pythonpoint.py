@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-#Copyright ReportLab Europe Ltd. 2000-2008
+#Copyright ReportLab Europe Ltd. 2000-2012
 #see license.txt for license details
 """
 This is PythonPoint!
@@ -70,7 +70,7 @@ Recently added features are:
 - save in combined presentation/handout mode (TODO)
 - add pyRXP support (TODO)
 """
-__version__='''$Id: pythonpoint.py 3660 2010-02-08 18:17:33Z damian $'''
+__version__='''$Id: pythonpoint.py 3959 2012-09-27 14:39:39Z robin $'''
 import os, sys, imp, string, pprint, getopt, glob
 
 from reportlab import rl_config

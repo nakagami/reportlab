@@ -1,7 +1,7 @@
 #!/bin/env python
-#Copyright ReportLab Europe Ltd. 2000-2004
+#Copyright ReportLab Europe Ltd. 2000-2012
 #see license.txt for license details
-__version__=''' $Id: corp.py 3786 2010-09-29 09:51:54Z rgbecker $ '''
+__version__=''' $Id: corp.py 3959 2012-09-27 14:39:39Z robin $ '''
 __doc__="""Generate ReportLab logo in a variety of sizes and formats.
 
 

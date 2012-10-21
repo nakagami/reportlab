@@ -1,8 +1,8 @@
-#Copyright ReportLab Europe Ltd. 2000-2004
+#Copyright ReportLab Europe Ltd. 2000-2012
 #see license.txt for license details
 #history http://www.reportlab.co.uk/cgi-bin/viewcvs.cgi/public/reportlab/trunk/reportlab/graphics/charts/lineplots.py
 
-__version__=''' $Id: lineplots.py 3735 2010-07-01 12:24:52Z rgbecker $ '''
+__version__=''' $Id: lineplots.py 3959 2012-09-27 14:39:39Z robin $ '''
 __doc__="""This module defines a very preliminary Line Plot example."""
 
 import string, time
@@ -213,7 +213,10 @@ class LinePlot(AbstractLineChart):
             else:
                 labelText = labelFmt % labelValue
         elif hasattr(labelFmt,'__call__'):
-            labelText = labelFmt(labelValue)
+            if not hasattr(labelFmt,'__labelFmtEX__'):
+                labelText = labelFmt(labelValue)
+            else:
+                labelText = labelFmt(self,rowNo,colNo,x,y)
         else:
             raise ValueError("Unknown formatter type %s, expected string or function"%labelFmt)
 
@@ -298,10 +301,18 @@ class LinePlot(AbstractLineChart):
                 uSymbol = None
 
             if uSymbol:
-                j = -1
                 if bubblePlot: drow = self.data[rowNo]
-                for xy in row:
-                    j += 1
+                for j,xy in enumerate(row):
+                    symbol = uSymbol2Symbol(uSymbol,xy[0],xy[1],rowColor)
+                    if symbol:
+                        if bubblePlot:
+                            symbol.size = bubbleR*(drow[j][2]/bubbleMax)**0.5
+                        g.add(symbol)
+            else:
+                if bubblePlot: drow = self.data[rowNo]
+                for j,xy in enumerate(row):
+                    usymbol = getattr(self.lines[rowNo,j],'symbol',None)
+                    if not usymbol: continue
                     symbol = uSymbol2Symbol(uSymbol,xy[0],xy[1],rowColor)
                     if symbol:
                         if bubblePlot:
@@ -348,13 +359,27 @@ class LinePlot(AbstractLineChart):
             if self.behindAxes:
                 self._lineG = Group()
                 g.add(self._lineG)
+        xA._joinToAxis()
+        yA._joinToAxis()
+        xAex = xA.visibleAxis and [xA._y] or []
+        yAex = yA.visibleAxis and [yA._x] or []
+        skipGrid = getattr(xA,'skipGrid','none')
+        if skipGrid!=None:
+            if skipGrid in ('both','top'):
+                yAex.append(xA._x+xA._length)
+            if skipGrid in ('both','bottom'):
+                yAex.append(xA._x)
+        skipGrid = getattr(yA,'skipGrid','none')
+        if skipGrid!=None:
+            if skipGrid in ('both','top'):
+                xAex.append(yA._y+yA._length)
+            if skipGrid in ('both','bottom'):
+                xAex.append(yA._y)
         if self.gridFirst:
-            xA.makeGrid(g,parent=self,dim=yA.getGridDims)
-            yA.makeGrid(g,parent=self,dim=xA.getGridDims)
+            xA.makeGrid(g,parent=self,dim=yA.getGridDims,exclude=yAex)
+            yA.makeGrid(g,parent=self,dim=xA.getGridDims,exclude=xAex)
         g.add(xA.draw())
         g.add(yA.draw())
-        xAex = xA.visibleAxis and (xA._y,) or ()
-        yAex = yA.visibleAxis and (yA._x,) or ()
         if not self.gridFirst:
             xAdgl = getattr(xA,'drawGridLast',False)
             yAdgl = getattr(yA,'drawGridLast',False)
@@ -801,7 +826,6 @@ class ScatterPlot(LinePlot):
                     height = AttrMapValue(isNumber, desc="Height of the area inside the axes"),
                     outerBorderOn = AttrMapValue(isBoolean, desc="Is there an outer border (continuation of axes)"),
                     outerBorderColor = AttrMapValue(isColorOrNone, desc="Color of outer border (if any)"),
-                    background = AttrMapValue(isColorOrNone, desc="Background color (if any)"),
                     labelOffset = AttrMapValue(isNumber, desc="Space between label and Axis (or other labels)",advancedUsage=1),
                     axisTickLengths = AttrMapValue(isNumber, desc="Lenth of the ticks on both axes"),
                     axisStrokeWidth = AttrMapValue(isNumber, desc="Stroke width for both axes"),
@@ -853,7 +877,6 @@ class ScatterPlot(LinePlot):
 
         #values for lineplot
         self.joinedLines = 0
-        self.fillColor = self.background
 
         self.leftPadding=5
         self.rightPadding=10

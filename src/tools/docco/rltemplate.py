@@ -1,4 +1,4 @@
-#Copyright ReportLab Europe Ltd. 2000-2004
+#Copyright ReportLab Europe Ltd. 2000-2012
 #see license.txt for license details
 #history http://www.reportlab.co.uk/cgi-bin/viewcvs.cgi/public/reportlab/trunk/reportlab/tools/docco/rltemplate.py
 # doc template for RL manuals.  Currently YAML is hard-coded
@@ -28,10 +28,10 @@ class FrontCoverTemplate(PageTemplate):
         canvas.setFont('Times-Roman', 10)
         canvas.line(inch, 120, self.pageWidth - inch, 120)
 
-        canvas.drawString(inch, 100, 'Media House')
-        canvas.drawString(inch, 88, '3 Palmerston Road')
+        canvas.drawString(inch, 100, 'Thornton House')
+        canvas.drawString(inch, 88, 'Thornton Road')
         canvas.drawString(inch, 76, 'Wimbledon')
-        canvas.drawString(inch, 64, 'London SW19 1PG, UK')
+        canvas.drawString(inch, 64, 'London SW19 4NG, UK')
 
         canvas.restoreState()
 

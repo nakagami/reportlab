@@ -1,7 +1,7 @@
-#Copyright ReportLab Europe Ltd. 2000-2004
+#Copyright ReportLab Europe Ltd. 2000-2012
 #see license.txt for license details
 #history http://www.reportlab.co.uk/cgi-bin/viewcvs.cgi/public/reportlab/trunk/reportlab/graphics/charts/barcharts.py
-__version__=''' $Id: barcharts.py 3761 2010-09-02 14:40:46Z damian $ '''
+__version__=''' $Id: barcharts.py 3959 2012-09-27 14:39:39Z robin $ '''
 __doc__="""This module defines a variety of Bar Chart components.
 
 The basic flavors are stacked and side-by-side, available in horizontal and
@@ -49,7 +49,7 @@ class BarChart(PlotArea):
     "Abstract base class, unusable by itself."
 
     _attrMap = AttrMap(BASE=PlotArea,
-        useAbsolute = AttrMapValue(EitherOr((isBoolean,EitherOr((isString,isNumber)))), desc='Flag to use absolute spacing values; use string of gsb for finer control\n(g=groupSpacing,s=barSpacing,b=barWidth). ',advancedUsage=1),
+        useAbsolute = AttrMapValue(EitherOr((isBoolean,EitherOr((isString,isNumber)))), desc='Flag to use absolute spacing values; use string of gsb for finer control\n(g=groupSpacing,s=barSpacing,b=barWidth).',advancedUsage=1),
         barWidth = AttrMapValue(isNumber, desc='The width of an individual bar.'),
         groupSpacing = AttrMapValue(isNumber, desc='Width between groups of bars.'),
         barSpacing = AttrMapValue(isNumber, desc='Width between individual bars.'),
@@ -67,6 +67,16 @@ class BarChart(PlotArea):
         categoryLabelBarSize = AttrMapValue(isNumber, desc='width to leave for a category label to go between categories.'),
         categoryLabelBarOrder = AttrMapValue(OneOf('first','last','auto'), desc='where any label bar should appear first/last'),
         barRecord = AttrMapValue(None, desc='callable(bar,label=labelText,value=value,**kwds) to record bar information', advancedUsage=1),
+        zIndexOverrides = AttrMapValue(isStringOrNone, desc='''None (the default ie use old z ordering scheme) or a ',' separated list of key=value (int/float) for new zIndex ordering. If used defaults are
+    background=0,
+    categoryAxis=1,
+    valueAxis=2,
+    bars=3,
+    barLabels=4,
+    categoryAxisGrid=5,
+    valueAxisGrid=6,
+    annotations=7'''),
+        categoryNALabel = AttrMapValue(NoneOrInstanceOfNA_Label, desc='Label to use for a group of N/A values.',advancedUsage=1),
         )
 
     def makeSwatchSample(self, rowNo, x, y, width, height):
@@ -144,8 +154,8 @@ class BarChart(PlotArea):
         self.bars[0].fillColor = colors.red
         self.bars[1].fillColor = colors.green
         self.bars[2].fillColor = colors.blue
-        self.naLabel = None #NA_Label()
-
+        self.naLabel = self.categoryNALabel = None
+        self.zIndexOverrides = None
 
     def demo(self):
         """Shows basic use of a bar chart"""
@@ -194,17 +204,68 @@ class BarChart(PlotArea):
         cA.configure(self._configureData)
         self.calcBarPositions()
         g = Group()
-        g.add(self.makeBackground())
-        cAdgl = getattr(cA,'drawGridLast',False)
-        vAdgl = getattr(vA,'drawGridLast',False)
-        if not cAdgl: cA.makeGrid(g,parent=self, dim=vA.getGridDims)
-        if not vAdgl: vA.makeGrid(g,parent=self, dim=cA.getGridDims)
-        g.add(self.makeBars())
-        g.add(cA)
-        g.add(vA)
-        if cAdgl: cA.makeGrid(g,parent=self, dim=vA.getGridDims)
-        if vAdgl: vA.makeGrid(g,parent=self, dim=cA.getGridDims)
-        for a in getattr(self,'annotations',()): g.add(a(self,cA.scale,vA.scale))
+
+        zIndex = getattr(self,'zIndexOverrides',None)
+        if not zIndex:
+            g.add(self.makeBackground())
+            cAdgl = getattr(cA,'drawGridLast',False)
+            vAdgl = getattr(vA,'drawGridLast',False)
+            if not cAdgl: cA.makeGrid(g,parent=self, dim=vA.getGridDims)
+            if not vAdgl: vA.makeGrid(g,parent=self, dim=cA.getGridDims)
+            g.add(self.makeBars())
+            g.add(cA)
+            g.add(vA)
+            if cAdgl: cA.makeGrid(g,parent=self, dim=vA.getGridDims)
+            if vAdgl: vA.makeGrid(g,parent=self, dim=cA.getGridDims)
+            for a in getattr(self,'annotations',()): g.add(a(self,cA.scale,vA.scale))
+        else:
+            Z=dict(
+                background=0,
+                categoryAxis=1,
+                valueAxis=2,
+                bars=3,
+                barLabels=4,
+                categoryAxisGrid=5,
+                valueAxisGrid=6,
+                annotations=7,
+                )
+            for z in zIndex.strip().split(','):
+                z = z.strip()
+                if not z: continue
+                try:
+                    k,v=z.split('=')
+                except:
+                    raise ValueError('Badly formatted zIndex clause %r in %r\nallowed variables are\n%s' % (z,zIndex,'\n'.join(['%s=%r'% (k,Z[k]) for k in sorted(Z.keys())])))
+                if k not in Z:
+                    raise ValueError('Unknown zIndex variable %r in %r\nallowed variables are\n%s' % (k,Z,'\n'.join(['%s=%r'% (k,Z[k]) for k in sorted(Z.keys())])))
+                try:
+                    v = eval(v,{})  #only constants allowed
+                    assert isinstance(v,(float,int))
+                except:
+                    raise ValueError('Bad zIndex value %r in clause %r of zIndex\nallowed variables are\n%s' % (v,z,zIndex,'\n'.join(['%s=%r'% (k,Z[k]) for k in sorted(Z.keys())])))
+                Z[k] = v
+            Z = [(v,k) for k,v in Z.iteritems()]
+            Z.sort()
+            b = self.makeBars()
+            bl = b.contents.pop(-1)
+            for v,k in Z:
+                if k=='background':
+                    g.add(self.makeBackground())
+                elif k=='categoryAxis':
+                    g.add(cA)
+                elif k=='categoryAxisGrid':
+                    cA.makeGrid(g,parent=self, dim=vA.getGridDims)
+                elif k=='valueAxis':
+                    g.add(vA)
+                elif k=='valueAxisGrid':
+                    vA.makeGrid(g,parent=self, dim=cA.getGridDims)
+                elif k=='bars':
+                    g.add(b)
+                elif k=='barLabels':
+                    g.add(bl)
+                elif k=='annotations':
+                    for a in getattr(self,'annotations',()): g.add(a(self,cA.scale,vA.scale))
+
         del self._configureData
         return g
 
@@ -398,16 +459,16 @@ class BarChart(PlotArea):
         if text:
             self._addLabel(text, self.barLabels[(rowNo, colNo)], g, rowNo, colNo, x, y, width, height)
 
-    def _addNABarLabel(self, g, rowNo, colNo, x, y, width, height):
-        na = self.naLabel
+    def _addNABarLabel(self, g, rowNo, colNo, x, y, width, height, calcOnly=False, na=None):
+        if na is None: na = self.naLabel
         if na and na.text:
             na = copy.copy(na)
             v = self.valueAxis._valueMax<=0 and -1e-8 or 1e-8
             if width is None: width = v
             if height is None: height = v
-            self._addLabel(na.text, na, g, rowNo, colNo, x, y, width, height)
+            return self._addLabel(na.text, na, g, rowNo, colNo, x, y, width, height, calcOnly=calcOnly)
 
-    def _addLabel(self, text, label, g, rowNo, colNo, x, y, width, height):
+    def _addLabel(self, text, label, g, rowNo, colNo, x, y, width, height, calcOnly=False):
         if label.visible:
             labelWidth = stringWidth(text, label.fontName, label.fontSize)
             flipXY = self._flipXY
@@ -447,6 +508,7 @@ class BarChart(PlotArea):
                     dx = 0
             else:
                 dy = dx = 0
+            if calcOnly: return x0+dx, y0+dy
             label.setOrigin(x0+dx, y0+dy)
             label.setText(text)
             sC, sW = label.lineStrokeColor, label.lineStrokeWidth

@@ -1,6 +1,6 @@
-#Copyright ReportLab Europe Ltd. 2000-2010
+#Copyright ReportLab Europe Ltd. 2000-2012
 #see license.txt for license details
-__version__='''$Id: extformat.py 3665 2010-02-09 15:55:45Z rgbecker $'''
+__version__='''$Id: extformat.py 3959 2012-09-27 14:39:39Z robin $'''
 __doc__='''Apparently not used anywhere, purpose unknown!'''
 import sys
 

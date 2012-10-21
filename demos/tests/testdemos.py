@@ -1,8 +1,8 @@
 #!/bin/env python
-#Copyright ReportLab Europe Ltd. 2000-2008
+#Copyright ReportLab Europe Ltd. 2000-2012
 #see license.txt for license details
 __doc__='Test all demos'
-__version__=''' $Id: testdemos.py 3269 2008-09-03 17:22:41Z rgbecker $ '''
+__version__=''' $Id: testdemos.py 3959 2012-09-27 14:39:39Z robin $ '''
 _globals=globals().copy()
 import os, sys
 from reportlab import pdfgen

@@ -95,8 +95,9 @@ def transformNode(doc, newTag, node=None, **attrDict):
 
 ### classes ###
 class SVGCanvas:
-    def __init__(self, size=(300,300)):
-        self.verbose = 0
+    def __init__(self, size=(300,300), encoding='utf-8', verbose=0):
+        self.verbose = verbose
+        self.encoding = encoding
         self.width, self.height = self.size = size
         # self.height = size[1]
         self.code = []
@@ -126,11 +127,16 @@ class SVGCanvas:
         self.svg = self.doc.documentElement
         self.svg.setAttribute("width", str(size[0]))
         self.svg.setAttribute("height", str(self.height))
+        self.svg.setAttribute("preserveAspectRatio", "xMinYMin meet")
+        self.svg.setAttribute("viewBox", "0 0 %d %d" % (self.width, self.height))
 
         #these suggested by Tim Roberts, as updated by peter@maubp.freeserve.co.uk 
         self.svg.setAttribute("xmlns", "http://www.w3.org/2000/svg")
         self.svg.setAttribute("xmlns:xlink", "http://www.w3.org/1999/xlink")
         self.svg.setAttribute("version", "1.0")
+
+
+
         #self.svg.setAttribute("baseProfile", "full")   #disliked in V 1.0
         title = self.doc.createElement('title')
         text = self.doc.createTextNode('...')
@@ -163,12 +169,12 @@ class SVGCanvas:
         self.currGroup = self.groupTree
 
     def save(self, fn=None):
-        if isinstance(fn,str):
+        if type(fn) in types.StringTypes:
             f = open(fn, 'w')
         else:
             f = fn
 
-        f.write(self.doc.toprettyxml(indent="     "))
+        f.write(self.doc.toprettyxml(indent="     ",encoding=self.encoding))
 
         if f is not fn:
             f.close()
@@ -754,7 +760,12 @@ class _SVGRenderer(Renderer):
                 self._canvas.setLineJoin(value)
             elif key == 'strokeDashArray':
                 if value:
-                    self._canvas.setDash(value)
+                    if isinstance(value,(list,tuple)) and len(value)==2 and isinstance(value[1],(tuple,list)):
+                        phase = value[0]
+                        value = value[1]
+                    else:
+                        phase = 0
+                    self._canvas.setDash(value,phase)
                 else:
                     self._canvas.setDash()
             elif key == 'fillColor':
