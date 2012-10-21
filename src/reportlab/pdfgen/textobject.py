@@ -180,10 +180,14 @@ class PDFTextObject(_PDFColorSetter):
         font = pdfmetrics.getFont(self._fontname)
         self._curSubset = -1
         self.setTextOrigin(x, y)
+        self._textRenderMode = 0
+        self._clipping = 0
 
     def getCode(self):
         "pack onto one line; used internally"
         self._code.append('ET')
+         if self._clipping:
+             self._code.append('%d Tr' % (self._textRenderMode^4))
         return ' '.join(self._code)
 
     def setTextOrigin(self, x, y):
