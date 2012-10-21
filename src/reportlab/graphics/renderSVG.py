@@ -259,7 +259,7 @@ class SVGCanvas:
     def setDash(self, array=[], phase=0):
         """Two notations. Pass two numbers, or an array and phase."""
 
-        if type(array) in (int, float):
+        if isinstance(array,(float,int)):
             self.style['stroke-dasharray'] = ', '.join(map(str, ([array, phase])))
         elif isSeqType(array) and len(array) > 0:
             assert phase >= 0, "phase is a length in user space"
