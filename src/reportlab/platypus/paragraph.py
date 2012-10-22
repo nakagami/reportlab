@@ -1,10 +1,11 @@
-#Copyright ReportLab Europe Ltd. 2000-2008
+#Copyright ReportLab Europe Ltd. 2000-2012
 #see license.txt for license details
 #history http://www.reportlab.co.uk/cgi-bin/viewcvs.cgi/public/reportlab/trunk/reportlab/platypus/paragraph.py
-__version__=''' $Id: paragraph.py 3774 2010-09-08 15:11:10Z rgbecker $ '''
+__version__=''' $Id: paragraph.py 3959 2012-09-27 14:39:39Z robin $ '''
 __doc__='''The standard paragraph implementation'''
 from string import whitespace
 from operator import truth
+from unicodedata import category
 from reportlab.pdfbase.pdfmetrics import stringWidth, getFont, getAscentDescent
 from reportlab.platypus.paraparser import ParaParser
 from reportlab.platypus.flowables import Flowable
@@ -23,7 +24,7 @@ import re
 #on UTF8 branch, split and strip must be unicode-safe!
 #thanks to Dirk Holtwick for helpful discussions/insight
 #on this one
-_wsc_re_split=re.compile('[%s]+'% re.escape(' '.join((
+_wsc = ''.join((
     u'\u0009',  # HORIZONTAL TABULATION
     u'\u000A',  # LINE FEED
     u'\u000B',  # VERTICAL TABULATION
@@ -77,9 +78,9 @@ def split(text, delim=None):
 def strip(text):
     if hasattr(text, 'decode'): text = text.decode('utf8')
     if sys.version_info[0] == 3:
-        return text.strip()
+        return text.strip(_wsc)
     else:
-        return text.strip().encode('utf8')
+        return text.strip(_wsc).encode('utf8')
 
 class ParaLines(ABag):
     """
@@ -1546,15 +1547,18 @@ class Paragraph(Flowable):
                     if underline: _do_under_line(0, dx, ws, tx)
                     if strike: _do_under_line(0, dx, ws, tx, lm=0.125)
                     if link: _do_link_line(0, dx, ws, tx)
+                    if noJustifyLast and nLines==1 and style.endDots and dpl!=_rightDrawParaLine: _do_dots(0, dx, ws, xs, tx, dpl)
 
                     #now the middle of the paragraph, aligned with the left margin which is our origin.
                     for i in range(1, nLines):
                         ws = lines[i][0]
                         t_off = dpl( tx, _offsets[i], ws, lines[i][1], noJustifyLast and i==lim)
+                        dx = t_off+leftIndent
                         if dpl!=_justifyDrawParaLine: ws = 0
-                        if underline: _do_under_line(i, t_off+leftIndent, ws, tx)
-                        if strike: _do_under_line(i, t_off+leftIndent, ws, tx, lm=0.125)
-                        if link: _do_link_line(i, t_off+leftIndent, ws, tx)
+                        if underline: _do_under_line(i, dx, ws, tx)
+                        if strike: _do_under_line(i, dx, ws, tx, lm=0.125)
+                        if link: _do_link_line(i, dx, ws, tx)
+                        if noJustifyLast and i==lim and style.endDots and dpl!=_rightDrawParaLine: _do_dots(i, dx, ws, xs, tx, dpl)
                 else:
                     for i in range(1, nLines):
                         dpl( tx, _offsets[i], lines[i][0], lines[i][1], noJustifyLast and i==lim)
