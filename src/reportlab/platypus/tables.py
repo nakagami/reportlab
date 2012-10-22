@@ -18,36 +18,20 @@ See the test output from running this module as a script for a discussion of the
 tables and table styles.
 """
 import sys
-from reportlab.platypus.flowables import Flowable, Preformatted
+from reportlab.platypus.flowables import Flowable, Preformatted, Spacer
 from reportlab import rl_config
 from reportlab.lib.styles import PropertySet, ParagraphStyle, _baseFontName
 from reportlab.lib import colors
-from reportlab.lib.utils import fp_str, isStrType
+from reportlab.lib.utils import fp_str, annotateException, IdentStr, flatten, isStrType
+from reportlab.lib.abag import ABag as CellFrame
 from reportlab.pdfbase.pdfmetrics import stringWidth
-
-class CellStyle(PropertySet):
-    defaults = {
-        'fontname':_baseFontName,
-        'fontsize':10,
-        'leading':12,
-        'leftPadding':6,
-        'rightPadding':6,
-        'topPadding':3,
-        'bottomPadding':3,
-        'firstLineIndent':0,
-        'color':'black',
-        'alignment': 'LEFT',
-        'background': 'white',
-        'valign': 'BOTTOM',
-        'href': None,
-        'destination':None,
-        }
+from reportlab.platypus.doctemplate import Indenter
+from reportlab.platypus.flowables import LIIndenter
 
 LINECAPS={None: None, 'butt':0,'round':1,'projecting':2,'squared':2}
 LINEJOINS={None: None, 'miter':0, 'mitre':0, 'round':1,'bevel':2}
 
-# experimental replacement
-class CellStyle1(PropertySet):
+class CellStyle(PropertySet):
     fontname = _baseFontName
     fontsize = 10
     leading = 12
@@ -731,16 +715,18 @@ class Table(Flowable):
             w = W[colNo]
             if w is None or w=='*' or _endswith(w,'%'):
                 siz = 1
-                current = final = None
-                for rowNo in range(self._nrows):
+                final = 0
+                for rowNo in xrange(self._nrows):
                     value = self._cellvalues[rowNo][colNo]
                     style = self._cellStyles[rowNo][colNo]
-                    new = elementWidth(value,style)+style.leftPadding+style.rightPadding
-                    if current:
-                        final = max(current, new)
-                        current = new
+                    pad = style.leftPadding+style.rightPadding
+                    new = elementWidth(value,style)
+                    if new:
+                        new += pad
                     else:
-                        current = final = new
+                        new = pad
+                    new += style.leftPadding+style.rightPadding
+                    final = max(final, new)
                     siz = siz and self._canGetWidth(value) # irrelevant now?
                 if siz:
                     sizeable.append(colNo)
