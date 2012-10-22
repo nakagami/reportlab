@@ -568,7 +568,7 @@ class BarChart(PlotArea):
                             y = (r0[1]+r1[1])/2.0
                             self._addNABarLabel(lg,rowNoL,colNo,x,y,width,height,na=catNAL)
                         CBL.append(colNo)
-                      continue
+                    continue
 
                 # Draw a rectangular symbol for each data item,
                 # or a normal colored rectangle.

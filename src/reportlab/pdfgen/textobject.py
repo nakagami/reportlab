@@ -186,8 +186,8 @@ class PDFTextObject(_PDFColorSetter):
     def getCode(self):
         "pack onto one line; used internally"
         self._code.append('ET')
-         if self._clipping:
-             self._code.append('%d Tr' % (self._textRenderMode^4))
+        if self._clipping:
+            self._code.append('%d Tr' % (self._textRenderMode^4))
         return ' '.join(self._code)
 
     def setTextOrigin(self, x, y):
