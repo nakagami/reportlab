@@ -12,7 +12,7 @@ in based on possible knowledge of the language and desirable 'niceness' of the a
 
 __version__=''' $Id: textsplit.py 3662 2010-02-09 11:23:58Z rgbecker $ '''
 
-import unicodedata
+from unicodedata import category
 from reportlab.pdfbase.pdfmetrics import stringWidth
 from reportlab.rl_config import _FUZZ
 
@@ -113,40 +113,72 @@ def dumbSplit(word, widths, maxWidths):
     >>> dumbSplit(jtext, [10]*11, 30)   #
     (u'\u65e5\u672c\u8a9e', u'\u306f\u96e3\u3057\u3044\u3067\u3059\u306d\uff01')
     """
-    assert type(word) is type(u'')
+    if not isinstance(maxWidths,(list,tuple)): maxWidths = [maxWidths]
+    assert type(word) is UnicodeType
     lines = []
-    widthUsed = 0.0
-    lineStartPos = 0
-    for (i, w) in enumerate(widths):
+    i = widthUsed = lineStartPos = 0
+    maxWidth = maxWidths[0]
+    nW = len(word)
+    while i<nW:
+        w = widths[i]
+        c = word[i]
         widthUsed += w
-        if widthUsed > availWidth + _FUZZ:
-            #used more than can fit...
-            #ping out with previous cut, then set up next line with one character
+        i += 1
+        if widthUsed > maxWidth + _FUZZ and widthUsed>0:
+            extraSpace = maxWidth - widthUsed
+            if ord(c)<0x3000:
+                # we appear to be inside a non-Asian script section.
+                # (this is a very crude test but quick to compute).
+                # This is likely to be quite rare so the speed of the
+                # code below is hopefully not a big issue.  The main
+                # situation requiring this is that a document title
+                # with an english product name in it got cut.
+                
+                
+                # we count back and look for 
+                #  - a space-like character
+                #  - reversion to Kanji (which would be a good split point)
+                #  - in the worst case, roughly half way back along the line
+                limitCheck = (lineStartPos+i)>>1        #(arbitrary taste issue)
+                for j in xrange(i-1,limitCheck,-1):
+                    cj = word[j]
+                    if category(cj)=='Zs' or ord(cj)>=0x3000:
+                        k = j+1
+                        if k<i:
+                            j = k+1
+                            extraSpace += sum(widths[j:i])
+                            w = widths[k]
+                            c = word[k]
+                            i = j
+                            break
 
-            extraSpace = availWidth - widthUsed + w
-            #print 'ending a line; used %d, available %d' % (widthUsed, availWidth)
-            selected = word[lineStartPos:i]
+                #end of English-within-Asian special case
 
-            #This is the most important of the Japanese typography rules.
-            #if next character cannot start a line, wrap it up to this line so it hangs
+            #we are pushing this character back, but
+            #the most important of the Japanese typography rules
+            #if this character cannot start a line, wrap it up to this line so it hangs
             #in the right margin. We won't do two or more though - that's unlikely and
             #would result in growing ugliness.
-            nextChar = word[i]
-            if nextChar in ALL_CANNOT_START:
-                #it's punctuation or a closing bracket of some kind.  'wrap up'
-                #so it stays on the line above, slightly exceeding our target width.
-                #print 'wrapping up', repr(nextChar)
-                selected += nextChar
-                extraSpace -= w
-                i += 1
-            lines.append([extraSpace, selected])
+            #and increase the extra space
+            #bug fix contributed by Alexander Vasilenko <alexs.vasilenko@gmail.com>
+            if c not in ALL_CANNOT_START and i>lineStartPos+1:
+                #otherwise we need to push the character back
+                #the i>lineStart+1 condition ensures progress
+                i -= 1
+                extraSpace += w
+
+            #lines.append([maxWidth-sum(widths[lineStartPos:i]), word[lineStartPos:i].strip()])
+            lines.append([extraSpace, word[lineStartPos:i].strip()])
+            try:
+                maxWidth = maxWidths[len(lines)]
+            except IndexError:
+                maxWidth = maxWidths[-1]  # use the last one
             lineStartPos = i
-            widthUsed = w
-            i -= 1
+            widthUsed = 0
+
     #any characters left?
     if widthUsed > 0:
-        extraSpace = availWidth - widthUsed
-        lines.append([extraSpace, word[lineStartPos:]])
+        lines.append([maxWidth - widthUsed, word[lineStartPos:]])
 
     return lines
 
