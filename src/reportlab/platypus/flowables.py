@@ -1538,7 +1538,7 @@ class ListFlowable(_Container,Flowable):
                 raise ValueError('%s style argument not a ListStyle' % self.__class__.__name__)
             self.style = style
 
-        for k,v in ListStyle.defaults.iteritems():
+        for k,v in ListStyle.defaults.items():
             setattr(self,'_'+k,kwds.get(k,getattr(style,k,v)))
         if start is None:
             start = getattr(self,'_start',None)

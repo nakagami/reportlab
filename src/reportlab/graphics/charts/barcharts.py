@@ -548,7 +548,7 @@ class BarChart(PlotArea):
                     if None not in (width,height):
                         catNNA[colNo] = 1
 
-        for rowNo in xrange(lenData):
+        for rowNo in range(lenData):
             row = BP[rowNo]
             styleCount = len(bars)
             styleIdx = rowNo % styleCount

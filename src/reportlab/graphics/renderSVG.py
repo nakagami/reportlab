@@ -11,7 +11,7 @@ import math, types, sys, os
 from operator import getitem
 
 from reportlab.pdfbase.pdfmetrics import stringWidth # for font info
-from reportlab.lib.utils import fp_str, isSeqType
+from reportlab.lib.utils import fp_str, isSeqType, isStrType
 from reportlab.lib.colors import black
 from reportlab.graphics.renderbase import StateTracker, getStateDelta, Renderer, renderScaledDrawing
 from reportlab.graphics.shapes import STATE_DEFAULTS, Path, UserNode
@@ -169,7 +169,7 @@ class SVGCanvas:
         self.currGroup = self.groupTree
 
     def save(self, fn=None):
-        if type(fn) in types.StringTypes:
+        if isStrType(fn):
             f = open(fn, 'w')
         else:
             f = fn

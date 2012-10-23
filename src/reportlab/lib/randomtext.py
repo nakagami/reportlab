@@ -362,10 +362,10 @@ if __name__=='__main__':
         else:
             sentences = 5
         try:
-            print randomText(theme,sentences)
+            print(randomText(theme,sentences))
         except:
-            print>>sys.stderr,"Usage: randomtext.py [theme [#sentences]]"
-            print>>sys.stderr," theme in chomsky|STARTUP|COMPUTERS|BLAH|BUZZWORD|STARTREK|PRINTING|PYTHON"
+            print("Usage: randomtext.py [theme [#sentences]]")
+            print(" theme in chomsky|STARTUP|COMPUTERS|BLAH|BUZZWORD|STARTREK|PRINTING|PYTHON")
             raise
     else:
-        print chomsky(5)
+        print(chomsky(5))

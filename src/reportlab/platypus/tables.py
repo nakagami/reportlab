@@ -716,7 +716,7 @@ class Table(Flowable):
             if w is None or w=='*' or _endswith(w,'%'):
                 siz = 1
                 final = 0
-                for rowNo in xrange(self._nrows):
+                for rowNo in range(self._nrows):
                     value = self._cellvalues[rowNo][colNo]
                     style = self._cellStyles[rowNo][colNo]
                     pad = style.leftPadding+style.rightPadding

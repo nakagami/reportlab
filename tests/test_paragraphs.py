@@ -78,7 +78,7 @@ class ParagraphTestCase(unittest.TestCase):
                                    spaceAfter=12)
 
         SA(Paragraph("This is a normal paragraph. "+ randomText(), styNormal))
-        SA(Paragraph("There follows a paragraph with only \"&lt;br/&gt\"", styNormal))
+        SA(Paragraph("There follows a paragraph with only \"&lt;br/&gt;\"", styNormal))
         SA(Paragraph("<br/>", styNormal))
         SA(Paragraph("This has 12 points space before and after, set in the style. " + randomText(), stySpaced))
         SA(Paragraph("This is normal. " + randomText(), styNormal))

@@ -15,6 +15,7 @@ __version__=''' $Id: textsplit.py 3662 2010-02-09 11:23:58Z rgbecker $ '''
 from unicodedata import category
 from reportlab.pdfbase.pdfmetrics import stringWidth
 from reportlab.rl_config import _FUZZ
+from reportlab.lib.utils import isUnicodeType
 
 CANNOT_START_LINE = [
     #strongly prohibited e.g. end brackets, stop, exclamation...
@@ -114,7 +115,7 @@ def dumbSplit(word, widths, maxWidths):
     (u'\u65e5\u672c\u8a9e', u'\u306f\u96e3\u3057\u3044\u3067\u3059\u306d\uff01')
     """
     if not isinstance(maxWidths,(list,tuple)): maxWidths = [maxWidths]
-    assert type(word) is UnicodeType
+    assert isUnicodeType(word)
     lines = []
     i = widthUsed = lineStartPos = 0
     maxWidth = maxWidths[0]

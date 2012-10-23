@@ -1898,7 +1898,7 @@ class PDFResourceDictionary:
             self.ColorSpace[s] = PDFObjectReference(c)
 
     def setShading(self,shadingUsed):
-        for c,s in shadingUsed.iteritems():
+        for c,s in shadingUsed.items():
             self.Shading[s] = PDFObjectReference(c)
 
     def format(self, document):
@@ -2279,15 +2279,15 @@ class PDFFunction:
         d.update(kw)
         for name in self.required:
             if name not in d:
-                raise ValueError, "keyword argument %s missing" % name
+                raise ValueError("keyword argument %s missing" % name)
         permitted = self.permitted
         for name in d.keys():
             if name not in permitted:
-                raise ValueError, "bad annotation dictionary name %s" % name
+                raise ValueError("bad annotation dictionary name %s" % name)
         return PDFDictionary(d)
 
     def Dict(self, document):
-        raise ValueError, "Dict undefined for virtual superclass PDFShading, must overload"
+        raise ValueError("Dict undefined for virtual superclass PDFShading, must overload")
         # but usually
         #return self.FunctionDict(self, ...)
 
@@ -2340,15 +2340,15 @@ class PDFShading:
         d.update(kw)
         for name in self.required:
             if name not in d:
-                raise ValueError, "keyword argument %s missing" % name
+                raise ValueError("keyword argument %s missing" % name)
         permitted = self.permitted
         for name in d.keys():
             if name not in permitted:
-                raise ValueError, "bad annotation dictionary name %s" % name
+                raise ValueError("bad annotation dictionary name %s" % name)
         return PDFDictionary(d)
 
     def Dict(self, document):
-        raise ValueError, "Dict undefined for virtual superclass PDFShading, must overload"
+        raise ValueError("Dict undefined for virtual superclass PDFShading, must overload")
         # but usually
         #return self.ShadingDict(self, ...)
 

@@ -298,14 +298,17 @@ class DrawTimeCollector(object):
         finally:
             f.close()
 
-def xyDist( (x0,y0),(x1,y1) ):
+def xyDist(p0, p1):
     '''return distance between two points'''
+    (x0,y0) = p0
+    (x1,y1) = p1
     return hypot((x1-x0),(y1-y0))
 
-def lineSegmentIntersect(
-                (x00,y00),(x01,y01),
-                (x10,y10),(x11,y11)
-                ):
+def lineSegmentIntersect(p00, p01, p10, p11):
+    (x00,y00) = p00
+    (x01,y01) = p01
+    (x10,y10) = p10
+    (x11,y11) = p11
     p = x00,y00
     r = x01-x00,y01-y00
 
