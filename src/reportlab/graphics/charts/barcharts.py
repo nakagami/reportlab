@@ -541,9 +541,9 @@ class BarChart(PlotArea):
             CBL = []
             rowNoL = lenData - 1
             #find all the categories that have at least one value
-            for rowNo in xrange(lenData):
+            for rowNo in range(lenData):
                 row = BP[rowNo]
-                for colNo in xrange(len(row)):
+                for colNo in range(len(row)):
                     x, y, width, height = row[colNo]
                     if None not in (width,height):
                         catNNA[colNo] = 1
@@ -553,7 +553,7 @@ class BarChart(PlotArea):
             styleCount = len(bars)
             styleIdx = rowNo % styleCount
             rowStyle = bars[styleIdx]
-            for colNo in xrange(len(row)):
+            for colNo in range(len(row)):
                 style = (styleIdx,colNo) in bars and bars[(styleIdx,colNo)] or rowStyle
                 x, y, width, height = row[colNo]
                 if None in (width,height):

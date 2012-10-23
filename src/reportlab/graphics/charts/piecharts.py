@@ -475,7 +475,7 @@ def theta0(data, direction):
     vstar = len(data)*1e6
     rstar = 0
     delta = pi/36.0
-    for i in xrange(36):
+    for i in range(36):
         r = i*delta
         v = sum([abs(sin(r+a)) for a in hrads])
         if v < vstar:

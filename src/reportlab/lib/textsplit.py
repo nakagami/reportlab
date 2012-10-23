@@ -141,7 +141,7 @@ def dumbSplit(word, widths, maxWidths):
                 #  - reversion to Kanji (which would be a good split point)
                 #  - in the worst case, roughly half way back along the line
                 limitCheck = (lineStartPos+i)>>1        #(arbitrary taste issue)
-                for j in xrange(i-1,limitCheck,-1):
+                for j in range(i-1,limitCheck,-1):
                     cj = word[j]
                     if category(cj)=='Zs' or ord(cj)>=0x3000:
                         k = j+1

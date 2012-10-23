@@ -170,7 +170,7 @@ class SVGCanvas:
 
     def save(self, fn=None):
         if isStrType(fn):
-            f = open(fn, 'w')
+            f = open(fn, 'bw')
         else:
             f = fn
 

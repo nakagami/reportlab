@@ -193,8 +193,8 @@ class RenderSvgSimpleTestCase(unittest.TestCase):
         fg = svg.getElementsByTagName('g')[0]           # flipping group
         dg = fg.getElementsByTagName('g')[0]            # diagram group
         textChildren = dg.getElementsByTagName('text')  # text nodes
-        t0 = string.strip(textChildren[0].childNodes[0].nodeValue)
-        t1 = string.strip(textChildren[1].childNodes[0].nodeValue)
+        t0 = textChildren[0].childNodes[0].nodeValue.strip()
+        t1 = textChildren[1].childNodes[0].nodeValue.strip()
         assert t0 == 'foo'+specialChar
         assert t1 == 'bar'
 

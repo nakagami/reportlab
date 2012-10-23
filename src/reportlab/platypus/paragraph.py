@@ -857,13 +857,13 @@ def cjkFragSplit(frags, maxWidths, calcBounds, encoding='utf8'):
                     #  - reversion to Kanji (which would be a good split point)
                     #  - in the worst case, roughly half way back along the line
                     limitCheck = (lineStartPos+i)>>1        #(arbitrary taste issue)
-                    for j in xrange(i-1,limitCheck,-1):
+                    for j in range(i-1,limitCheck,-1):
                         uj = U[j]
                         if uj and category(uj)=='Zs' or ord(uj)>=0x3000:
                             k = j+1
                             if k<i:
                                 j = k+1
-                                extraSpace += sum(U[ii].width for ii in xrange(j,i))
+                                extraSpace += sum(U[ii].width for ii in range(j,i))
                                 w = U[k].width
                                 u = U[k]
                                 i = j
