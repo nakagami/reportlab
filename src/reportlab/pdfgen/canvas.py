@@ -115,7 +115,7 @@ def _buildColorFunction(colors, positions):
         positions = [(1.0*x)/(nc-1) for x in range(nc)]
     else:
         # sort positions and colors in increasing order
-        poscolors = zip(positions, colors)
+        poscolors = list(zip(positions, colors))
         poscolors.sort(key=lambda x: x[0])
         # add endpoint positions if not already present
         if poscolors[0][0] != 0:
