@@ -170,7 +170,7 @@ class SVGCanvas:
 
     def save(self, fn=None):
         if isStrType(fn):
-            f = open(fn, 'bw')
+            f = open(fn, 'wb' if sys.version_info[0] == 3 else 'w')
         else:
             f = fn
 
