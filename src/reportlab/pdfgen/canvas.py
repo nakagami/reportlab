@@ -1482,6 +1482,8 @@ class Canvas(textobject._PDFColorSetter):
 
     def drawString(self, x, y, text, mode=None):
         """Draws a string in the current text styles."""
+        if not isinstance(text, str):
+            text = text.decode('utf-8')
         #we could inline this for speed if needed
         t = self.beginText(x, y)
         if mode is not None: t.setTextRenderMode(mode)
@@ -1490,6 +1492,8 @@ class Canvas(textobject._PDFColorSetter):
 
     def drawRightString(self, x, y, text, mode=None):
         """Draws a string right-aligned with the x coordinate"""
+        if not isinstance(text, str):
+            text = text.decode('utf-8')
         width = self.stringWidth(text, self._fontname, self._fontsize)
         t = self.beginText(x - width, y)
         if mode is not None: t.setTextRenderMode(mode)
@@ -1500,6 +1504,8 @@ class Canvas(textobject._PDFColorSetter):
         """Draws a string centred on the x coordinate. 
         
         We're British, dammit, and proud of our spelling!"""
+        if not isinstance(text, str):
+            text = text.decode('utf-8')
         width = self.stringWidth(text, self._fontname, self._fontsize)
         t = self.beginText(x - 0.5*width, y)
         if mode is not None: t.setTextRenderMode(mode)
