@@ -1,7 +1,12 @@
 #Copyright ReportLab Europe Ltd. 2000-2012
 #see license.txt for license details
 __version__=''' $Id: setup.py 3963 2012-09-27 16:14:06Z rgbecker $ '''
-import os, sys, glob, ConfigParser, shutil
+import os, sys, glob, shutil
+try:
+    from ConfigParser import RawConfigParser
+except ImportError:
+    from configparser import RawConfigParser
+
 platform = sys.platform
 pjoin = os.path.join
 abspath = os.path.abspath
@@ -19,7 +24,7 @@ elif not os.path.isabs(pkgDir):
 try:
     os.chdir(pkgDir)
 except:
-    print '!!!!! warning could not change directory to %r' % pkgDir
+    print('!!!!! warning could not change directory to %r' % pkgDir)
 daily=os.environ.get('RL_EXE_DAILY','')
 
 import distutils
@@ -50,7 +55,7 @@ def get_version():
     try:
         for l in open(pjoin(FN+'.py'),'r').readlines():
             if l.startswith('Version'):
-                exec l.strip()
+                exec(l.strip())
                 return Version
     except:
         pass
@@ -70,7 +75,7 @@ def get_version():
 class config:
     def __init__(self):
         try:
-            self.parser = ConfigParser.RawConfigParser()
+            self.parser = RawConfigParser()
             self.parser.read(pjoin(pkgDir,'setup.cfg'))
         except:
             self.parser = None
@@ -139,8 +144,8 @@ class _rl_dir_info:
         except:
             return None
 
-def _cmp_rl_ccode_dirs(a,b):
-    return cmp(_rl_dir_info(b),_rl_dir_info(a))
+def _cmp_rl_ccode_dirs(k):
+    return _rl_dir_info(k)
 
 def _find_rl_ccode(dn='rl_accel',cn='_rl_accel.c'):
     '''locate where the accelerator code lives'''
@@ -162,10 +167,11 @@ def _find_rl_ccode(dn='rl_accel',cn='_rl_accel.c'):
         if isfile(fn):
             _.append(x)
     if _:
-        _ = filter(_rl_dir_info(cn),_)
-        if len(_):
-            _.sort(_cmp_rl_ccode_dirs)
-            return abspath(_[0])
+        return  abspath(_[0])
+#        _ = filter(_rl_dir_info(cn),_)
+#        if len(_):
+#            _.sort(_cmp_rl_ccode_dirs)
+#            return abspath(_[0])
     return None
 
 
@@ -181,7 +187,7 @@ def pfxJoin(pfx,*N):
 
 INFOLINES=[]
 def infoline(t):
-    print t
+    print(t)
     INFOLINES.append(t)
 
 reportlab_files= [
@@ -451,8 +457,8 @@ def main():
             ext_modules =   EXT_MODULES,
             )
         print
-        print '########## SUMMARY INFO #########'
-        print '\n'.join(INFOLINES)
+        print('########## SUMMARY INFO #########')
+        print('\n'.join(INFOLINES))
     finally:
         for dst in SPECIAL_PACKAGE_DATA.itervalues():
             os.remove(pjoin(PACKAGE_DIR['reportlab'],dst))
