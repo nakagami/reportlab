@@ -1,6 +1,11 @@
 #copyright ReportLab Inc. 2000-2010
 #see LICENSE.txt for license details
 
+NOTE: This project is a modified version of ReportLab 2.6 that was
+adapted from Python 2.7 to Python 3 around 2012. The original ReportLab
+now runs on Python 3 and includes many additional features, so please
+use the upstream version instead.
+
 This is the ReportLab PDF Toolkit. It allows rapid creation 
 of rich PDF documents, and also creation of charts in a variety 
 of bitmap and vector formats.  
